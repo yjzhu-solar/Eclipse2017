@@ -35,7 +35,7 @@ video_time_array = np.arange(datetime(2017,8,21,17,45,23),datetime(2017,8,21,17,
 video_time_array = video_time_array[13:97]
 
 slit_pos = 209.4
-rotate_angle_context = -30
+rotate_angle_context = -28.
 sun_center_pixel_plot = np.array([300,220])
 
 with h5py.File("../../sav/Eclipse/LimbTrack/sun_pos_linear_fit.h5", 'r') as hf:

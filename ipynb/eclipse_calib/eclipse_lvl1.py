@@ -32,13 +32,13 @@ totality_red_im_collection = ImageFileCollection(red_path,
 totality_red_df = totality_red_im_collection.summary.to_pandas()
 totality_red_df["date-obs"] = pd.to_datetime(totality_red_df["date-obs"])
 
-totality_green_df_cut = totality_green_df.loc[(totality_green_df['date-obs'] >= datetime(2017,8,21,17,45,36)) & 
-                                        (totality_green_df['date-obs'] <= datetime(2017,8,21,17,47,0))]
+totality_green_df_cut = totality_green_df.loc[(totality_green_df['date-obs'] >= datetime(2017,8,21,17,45,21)) & 
+                                        (totality_green_df['date-obs'] <= datetime(2017,8,21,17,48,8))]
 totality_green_df_cut = totality_green_df_cut.reset_index(drop=True)
 
 
-totality_red_df_cut = totality_red_df.loc[(totality_red_df['date-obs'] >= datetime(2017,8,21,17,45,36)) & 
-                                        (totality_red_df['date-obs'] <= datetime(2017,8,21,17,47,0))]
+totality_red_df_cut = totality_red_df.loc[(totality_red_df['date-obs'] >= datetime(2017,8,21,17,45,21)) & 
+                                        (totality_red_df['date-obs'] <= datetime(2017,8,21,17,48,8))]
 totality_red_df_cut = totality_red_df_cut.reset_index(drop=True)
 
 

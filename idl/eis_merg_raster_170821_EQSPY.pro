@@ -32,7 +32,17 @@ for ii = 0, sizeof(filenames) - 1 do begin
     ;calculate the offset
     data = obj_new('eis_data',filenames[ii])
     yws = data->getinfo('YWS')
-    print,yws
+    print,'Start Y-Pixel = ',yws
+    xcen = data->getxcen(/raster)
+    ycen_195 = data->getycen(/raster)
+    ycen_264 = data->getycen(264.79,/raster)
+    xy_correct_aia = eis_aia_offsets(data->getdate_obs())
+    fovx = data->getfovx()
+    fovy = data->getfovy()
+    xpos = data->getxpos()
+    ypos_195 = data->getypos(195.12)
+    ypos_264 = data->getypos(264.79)
+    wvl_corr_hk = data->gethkwavecorr()
     current_index = 0
     for jj = 0, n_window - 1 do begin
         wvl_seg = data->getlam(jj)
@@ -74,7 +84,8 @@ for ii = 0, sizeof(filenames) - 1 do begin
 ;        print,data->getexp()
 ;    endif
     save,filename = "../sav/EIS/EQSPY_lvl1_offset_170821_tilt_cor"+".sav",wvl,new_data_offset,new_err_offset, $
-    window_start_index,window_end_index
+    window_start_index,window_end_index,xcen,ycen_195,ycen_264,xy_correct_aia,fovx,fovy,xpos,ypos_195,ypos_264, $
+    wvl_corr_hk
 end
 
 end
