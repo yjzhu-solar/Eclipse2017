@@ -84,9 +84,11 @@ testy_slice_mapcoor_red = slice(ystart_pixel_red,yend_pixel_red)
 #Read Wavelength files 
 with h5py.File("../../sav/Eclipse/Wavelength/master_wavelength_curvature_green.h5", 'r') as hf:
     wavelength_times_order_green = hf['wavelength_times_order'][:]
+    wavelength_times_order_shift_green = hf['wavelength_times_order_shift'][:]
 
 with h5py.File("../../sav/Eclipse/Wavelength/master_wavelength_curvature_red.h5", 'r') as hf:
     wavelength_times_order_red = hf['wavelength_times_order'][:]
+    wavelength_times_order_shift_red = hf['wavelength_times_order_shift'][:]
 
 for ii, row_ in totality_green_df_cut.iterrows():
     green_filename = row_["file"]
@@ -104,10 +106,15 @@ for ii, row_ in totality_green_df_cut.iterrows():
     green_hdr["comments"] = "Green detector. Bias removed, curvature corrected."
     green_hdr["XWS"] = (xstart_pixel_green, "X window start after the curvature correction")
     green_hdr["YWS"] = (ystart_pixel_green, "X window start after the curvature correction")
+    wavelength_green_hdr = fits.Header()
+    wavelength_green_hdr["comments"] = "Wavelength calibrated from laboratory hydrogen and helium frames."
+    wavelength_shift_green_hdr = fits.Header()
+    wavelength_shift_green_hdr["comments"] = "Wavelength absolutedly calibrated from chromospheric lines."
     
     primary_hdu = fits.PrimaryHDU(data=green_img_curv_corr,header=green_hdr)
-    wavelength_hdu = fits.ImageHDU(data=wavelength_times_order_green)
-    hdul_green = fits.HDUList([primary_hdu, wavelength_hdu])
+    wavelength_hdu = fits.ImageHDU(data=wavelength_times_order_green,header= wavelength_green_hdr)
+    wavelength_shift_hdu = fits.ImageHDU(data=wavelength_times_order_shift_green,header=wavelength_shift_green_hdr)
+    hdul_green = fits.HDUList([primary_hdu, wavelength_hdu, wavelength_shift_hdu])
 
     green_filename_save = green_filename[:-4] + "_l1" + green_filename[-4:]
     hdul_green.writeto(os.path.join(green_path_save,green_filename_save),overwrite=True)
@@ -126,12 +133,17 @@ for ii, row_ in totality_red_df_cut.iterrows():
                                                     (ypos_map_coordinate_red, xpos_map_coordinate_red),order=1)
 
     red_hdr["comments"] = "Red detector. Bias removed, curvature corrected."
-    red_hdr["XWS"] = (xstart_pixel_green, "X window start after the curvature correction")
-    red_hdr["YWS"] = (ystart_pixel_green, "X window start after the curvature correction")
+    red_hdr["XWS"] = (xstart_pixel_red, "X window start after the curvature correction")
+    red_hdr["YWS"] = (ystart_pixel_red, "X window start after the curvature correction")
+    wavelength_red_hdr = fits.Header()
+    wavelength_red_hdr["comments"] = "Wavelength calibrated from laboratory hydrogen and helium frames."
+    wavelength_shift_red_hdr = fits.Header()
+    wavelength_shift_red_hdr["comments"] = "Wavelength absolutedly calibrated from chromospheric lines."
     
     primary_hdu = fits.PrimaryHDU(data=red_img_curv_corr,header=red_hdr)
-    wavelength_hdu = fits.ImageHDU(data=wavelength_times_order_red)
-    hdul_red = fits.HDUList([primary_hdu, wavelength_hdu])
+    wavelength_hdu = fits.ImageHDU(data=wavelength_times_order_red,header= wavelength_red_hdr)
+    wavelength_shift_hdu = fits.ImageHDU(data=wavelength_times_order_shift_red,header=wavelength_shift_red_hdr)
+    hdul_red = fits.HDUList([primary_hdu, wavelength_hdu, wavelength_shift_hdu])
 
     red_filename_save = red_filename[:-4] + "_l1" + red_filename[-4:]
     hdul_red.writeto(os.path.join(red_path_save,red_filename_save),overwrite=True)
