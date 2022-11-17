@@ -41,7 +41,7 @@ for ii = 0, n_heights - 1 do begin
     FeX_data = emiss_calc('fe_10',temp=temp,dens=dens,radtemp=5770d,rphot=height[ii])
     FeX_id = where(FeX_data.lambda eq 6376.29)
     FeX_emiss_array[*,*,ii] = (FeX_data.em)[*,*,FeX_id]*0.83*Fe_abund/4/!PI
-FeXI
+
     for jj = 0, n_temps - 1 do begin
         FeX_emiss_array[jj,*,ii] = FeX_emiss_array[jj,*,ii]*ion_frac_FeX[jj]
     endfor 
