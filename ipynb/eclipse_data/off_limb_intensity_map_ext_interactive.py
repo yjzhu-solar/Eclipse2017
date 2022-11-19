@@ -3,7 +3,8 @@ import numpy as np
 from astropy.io import fits
 from glob import glob
 import os
-from astropy.visualization import ZScaleInterval, ImageNormalize, LogStretch, AsymmetricPercentileInterval
+from astropy.visualization import ZScaleInterval, ImageNormalize, LogStretch, \
+                    AsymmetricPercentileInterval, SqrtStretch, ManualInterval
 import h5py 
 from astropy.nddata import CCDData
 import astropy.constants as const
@@ -15,7 +16,8 @@ from datetime import datetime, timedelta
 from ccdproc import ImageFileCollection
 import pandas as pd
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
-from matplotlib.ticker import AutoLocator, AutoMinorLocator, FixedLocator, FixedFormatter, LogLocator, StrMethodFormatter
+from matplotlib.ticker import AutoLocator, AutoMinorLocator, FixedLocator, \
+                 FixedFormatter, LogLocator, StrMethodFormatter
 from matplotlib import patches
 from matplotlib.markers import MarkerStyle
 import cmcrameri.cm as cmcm
@@ -104,7 +106,7 @@ def fit_and_plot(line,order):
         FeXIV_rotate_center = (sun_center_FeXIV[0] - FeXIV_line_cont_xslice.start, sun_center_FeXIV[1] - FeXIV_line_cont_yslice.start)
         FeXIV_line_cont_image_rot_scipy = ndimage.rotate(FeXIV_line_cont_cutout, angle=360 - np.float64(FeXIV_line_cont_frame.header["SUNROT"]),reshape=False,order=1)
 
-        green_frame_example = CCDData.read(os.path.join(green_path,totality_green_df_cut.iloc[0]["file"]),hdu=0,unit="adu")
+        # green_frame_example = CCDData.read(os.path.join(green_path,totality_green_df_cut.iloc[0]["file"]),hdu=0,unit="adu")
         green_frame_wavelength = CCDData.read(os.path.join(green_path,totality_green_df_cut.iloc[0]["file"]),hdu=1,unit="adu").data
 
         img_center = np.array([300,220])
@@ -122,7 +124,7 @@ def fit_and_plot(line,order):
                 flatfield_1d = hf['flatfield_1d'][:]
             FeXIV_xslice = slice(345,395)
 
-            with h5py.File("../../sav/Eclipse/FitResults/FeXIV_63rd.h5",'r') as hf:
+            with h5py.File("../../sav/Eclipse/FitResults/FeXIV_63.h5",'r') as hf:
                 green_fit_matrix_ext = hf['green_fit_matrix_ext'][:]
                 green_fit_matrix_ext_err = hf['green_fit_matrix_ext_err'][:]
                 green_fit_matrix_bin_ext = hf['green_fit_matrix_bin_ext'][:]
@@ -133,9 +135,27 @@ def fit_and_plot(line,order):
             with h5py.File("../../sav/Eclipse/FlatField/skyflat_green_1d_FeXIV_62nd.h5", 'r') as hf:
                 flatfield_1d = hf['flatfield_1d'][:]
             FeXIV_xslice = slice(680,730)
-        
 
-        starttime_green_ext = datetime(2017,8,21,17,45,36)
+            with h5py.File("../../sav/Eclipse/FitResults/FeXIV_62.h5",'r') as hf:
+                green_fit_matrix_ext = hf['green_fit_matrix_ext'][:]
+                green_fit_matrix_ext_err = hf['green_fit_matrix_ext_err'][:]
+                green_fit_matrix_bin_ext = hf['green_fit_matrix_bin_ext'][:]
+                green_fit_matrix_bin_ext_err = hf['green_fit_matrix_bin_ext_err'][:]
+                green_fit_filename_index = hf['green_fit_filename_index'][:]        
+
+        if order == 61:
+            with h5py.File("../../sav/Eclipse/FlatField/skyflat_green_1d_FeXIV_61st.h5", 'r') as hf:
+                flatfield_1d = hf['flatfield_1d'][:]
+            FeXIV_xslice = slice(1010,1060)
+
+            with h5py.File("../../sav/Eclipse/FitResults/FeXIV_61.h5",'r') as hf:
+                green_fit_matrix_ext = hf['green_fit_matrix_ext'][:]
+                green_fit_matrix_ext_err = hf['green_fit_matrix_ext_err'][:]
+                green_fit_matrix_bin_ext = hf['green_fit_matrix_bin_ext'][:]
+                green_fit_matrix_bin_ext_err = hf['green_fit_matrix_bin_ext_err'][:]
+                green_fit_filename_index = hf['green_fit_filename_index'][:]      
+
+        # starttime_green_ext = datetime(2017,8,21,17,45,36)
 
         green_limb_loc = np.array([396.,625.,])
 
@@ -187,7 +207,7 @@ def fit_and_plot(line,order):
         slit_center_x_green =  - slit_xshift_green/pixel_ratio_to_arcsec*np.cos(np.deg2rad(np.abs(rotate_angle_context)))
         slit_center_y_green =  slit_xshift_green/pixel_ratio_to_arcsec*np.sin(np.deg2rad(np.abs(rotate_angle_context)))
 
-        fig, ((ax1,ax2,ax3),(ax4,ax5,ax6)) = plt.subplots(2,3,figsize=(12,9.5),constrained_layout=True,
+        fig, ((ax1,ax2,ax3),(ax4,ax5,ax6)) = plt.subplots(2,3,figsize=(14,9.5),constrained_layout=True,
                         gridspec_kw={'wspace':0.0})
         im1 = ax1.pcolormesh(img_xarcsec_array,img_yarcsec_array,FeXIV_line_cont_image_rot_scipy,vmin=0.2,vmax=1.2,
                             cmap=cmr.jungle_r,shading="auto",rasterized=True)
@@ -203,10 +223,12 @@ def fit_and_plot(line,order):
 
         green_line_int_masked = np.copy(green_fit_matrix_ext[1,:,:])
         green_line_int_masked[green_where_disk_ext] = np.nan
+        norm_green_line_int = ImageNormalize(green_line_int_masked,interval=ManualInterval(0,850),
+                                                stretch=SqrtStretch())
 
         im2 = ax2.pcolormesh(x_2d_grid_green_arcsec_rot_ext + slit_center_x_green,
                         y_2d_grid_green_arcsec_rot_ext + slit_center_y_green,
-                        green_line_int_masked,cmap=cmcm.lajolla,rasterized=True,vmin=0,vmax=850)
+                        green_line_int_masked,cmap=cmcm.lajolla,rasterized=True,norm=norm_green_line_int)
 
 
         plot_colorbar(im2, ax2,width=colorbar_width)
@@ -235,11 +257,11 @@ def fit_and_plot(line,order):
                                                 (y_2d_grid_green_arcsec_bin_rot_ext + slit_center_y_green)**2 < 940**2)
 
         green_vlos_masked = -(np.copy(green_fit_matrix_bin_ext[0,:,:]) - 530.29)/530.29*const.c.cgs.value*1e-5
-        green_vlos_masked[np.where(green_fit_matrix_bin_ext[1,:,:] < 50)] = np.nan
+        green_vlos_masked[np.where(green_fit_matrix_bin_ext[1,:,:] < 15)] = np.nan
         green_vlos_masked[green_where_disk_bin_ext] = np.nan
         green_vlos_masked = green_vlos_masked - np.nanmedian(green_vlos_masked)
         green_vlos_masked_err = green_fit_matrix_bin_ext_err[0,:,:]/530.29*const.c.cgs.value*1e-5
-        green_vlos_masked_err[np.where(green_fit_matrix_bin_ext[1,:,:] < 50)] = np.nan
+        green_vlos_masked_err[np.where(green_fit_matrix_bin_ext[1,:,:] < 15)] = np.nan
         green_vlos_masked_err[green_where_disk_bin_ext] = np.nan
         im5 = ax5.pcolormesh(x_2d_grid_green_arcsec_bin_rot_ext + slit_center_x_green,
                         y_2d_grid_green_arcsec_bin_rot_ext + slit_center_y_green,
@@ -248,10 +270,10 @@ def fit_and_plot(line,order):
         plot_colorbar(im5, ax5,width=colorbar_width)
 
         fwhm_masked = np.copy(green_fit_matrix_bin_ext[2,:,:])
-        fwhm_masked[np.where(green_fit_matrix_bin_ext[1,:,:] < 50)] = np.nan
+        fwhm_masked[np.where(green_fit_matrix_bin_ext[1,:,:] < 15)] = np.nan
         fwhm_masked[green_where_disk_bin_ext] = np.nan
         fwhm_masked_err = np.copy(green_fit_matrix_bin_ext_err[2,:,:])
-        fwhm_masked_err[np.where(green_fit_matrix_bin_ext[1,:,:] < 50)] = np.nan
+        fwhm_masked_err[np.where(green_fit_matrix_bin_ext[1,:,:] < 15)] = np.nan
         fwhm_masked_err[green_where_disk_bin_ext] = np.nan        
         veff_masked = np.sqrt(fwhm_masked**2 - inst_width_nm_green**2)/530.29*const.c.cgs.value*1e-5/np.sqrt(4*np.log(2))
         veff_masked_err = fwhm_masked/np.sqrt(fwhm_masked**2 - inst_width_nm_green**2)* \
@@ -276,8 +298,8 @@ def fit_and_plot(line,order):
         ax5.set_title(r"Fe \textsc{xiv} 530.3\,nm $v_{\rm LOS}\ \left[\mathrm{km\,s^{-1}}\right]$",fontsize=16)
         ax6.set_title(r"Fe \textsc{xiv} 530.3\,nm $v_{\rm eff}\ \left[\mathrm{km\,s^{-1}}\right]$",fontsize=16)
 
-        xlim_zoomin = [-1500,-400]
-        ylim_zoomin = [-900,800]
+        xlim_zoomin = [-1500,0]
+        ylim_zoomin = [-1000,1000]
 
         for ax_ in (ax2,ax3,ax5,ax6):
             ax_.tick_params(labelleft=False)
@@ -335,33 +357,224 @@ def fit_and_plot(line,order):
         FeXI_rotate_center = (sun_center_FeXI[0] - FeXI_line_cont_xslice.start, sun_center_FeXI[1] - FeXI_line_cont_yslice.start)
         FeXI_line_cont_image_rot_scipy = ndimage.rotate(FeXI_line_cont_cutout, angle=360 - np.float64(FeXI_line_cont_frame.header["SUNROT"]),reshape=False,order=1)
 
+        red_frame_wavelength = CCDData.read(os.path.join(red_path,totality_red_df_cut.iloc[0]["file"]),hdu=1,unit="adu").data
+
         img_center = np.array([300,220])
         slit_pos = 209.4
         rsun_arcsec = 950.0
         rsun_context_pixel = 71.4
-        pixel_ratio = rsun_context_pixel/np.float64(FeXIV_line_cont_frame.header["MOONR"])
-        img_pixel_to_arcsec = np.float64(FeXIV_line_cont_frame.header["SUNR"])/rsun_arcsec
-        pixel_ratio_to_arcsec = rsun_context_pixel/np.float64(FeXIV_line_cont_frame.header["MOONR"])*img_pixel_to_arcsec
+        pixel_ratio = rsun_context_pixel/np.float64(FeXI_line_cont_frame.header["MOONR"])
+        img_pixel_to_arcsec = np.float64(FeXI_line_cont_frame.header["SUNR"])/rsun_arcsec
+        pixel_ratio_to_arcsec = rsun_context_pixel/np.float64(FeXI_line_cont_frame.header["MOONR"])*img_pixel_to_arcsec
         rotate_angle_context = -27.5
 
-        if order == 52:
-            with h5py.File("../../sav/Eclipse/FlatField/skyflat_red_1d_FeX_52nd.h5", 'r') as hf:
+        if order == 53:
+            with h5py.File("../../sav/Eclipse/FlatField/skyflat_red_1d_FeX_53rd.h5", 'r') as hf:
                 flatfield_1d = hf['flatfield_1d'][:]
-            FeX_xslice = slice(602,652)
+            FeX_xslice = slice(1025,1075)
 
-            with h5py.File("../../sav/Eclipse/FitResults/FeX_52nd.h5",'r') as hf:
+            with h5py.File("../../sav/Eclipse/FitResults/FeX_53.h5",'r') as hf:
                 red_fit_matrix_ext = hf['red_fit_matrix_ext'][:]
                 red_fit_matrix_ext_err = hf['red_fit_matrix_ext_err'][:]
                 red_fit_matrix_bin_ext = hf['red_fit_matrix_bin_ext'][:]
                 red_fit_matrix_bin_ext_err = hf['red_fit_matrix_bin_ext_err'][:]
                 red_fit_filename_index = hf['red_fit_filename_index'][:]
 
+        if order == 52:
+            with h5py.File("../../sav/Eclipse/FlatField/skyflat_red_1d_FeX_52nd.h5", 'r') as hf:
+                flatfield_1d = hf['flatfield_1d'][:]
+            FeX_xslice = slice(602,652)
+
+            with h5py.File("../../sav/Eclipse/FitResults/FeX_52.h5",'r') as hf:
+                red_fit_matrix_ext = hf['red_fit_matrix_ext'][:]
+                red_fit_matrix_ext_err = hf['red_fit_matrix_ext_err'][:]
+                red_fit_matrix_bin_ext = hf['red_fit_matrix_bin_ext'][:]
+                red_fit_matrix_bin_ext_err = hf['red_fit_matrix_bin_ext_err'][:]
+                red_fit_filename_index = hf['red_fit_filename_index'][:]
+
+        if order == 51:
+            with h5py.File("../../sav/Eclipse/FlatField/skyflat_red_1d_FeX_51st.h5", 'r') as hf:
+                flatfield_1d = hf['flatfield_1d'][:]
+            FeX_xslice = slice(205,255)
+
+            with h5py.File("../../sav/Eclipse/FitResults/FeX_51.h5",'r') as hf:
+                red_fit_matrix_ext = hf['red_fit_matrix_ext'][:]
+                red_fit_matrix_ext_err = hf['red_fit_matrix_ext_err'][:]
+                red_fit_matrix_bin_ext = hf['red_fit_matrix_bin_ext'][:]
+                red_fit_matrix_bin_ext_err = hf['red_fit_matrix_bin_ext_err'][:]
+                red_fit_filename_index = hf['red_fit_filename_index'][:]
+
+        starttime_red_ext = datetime(2017,8,21,17,45,36)
+
+        red_limb_loc = np.array([366.,592.,])
+        x_1d_grid_red_ext = np.arange(-51,125,1,dtype=np.float64) + 8
+        y_1d_grid_red_ext = np.arange(np.mean(red_limb_loc) - 699.,  np.mean(red_limb_loc) - 349., 1, dtype=np.float64)
+
+        y_1d_grid_red_arcsec_ext = y_1d_grid_red_ext/(np.diff(red_limb_loc)/2.)*rsun_arcsec * \
+                np.float64(FeXI_line_cont_frame.header["MOONR"])/np.float64(FeXI_line_cont_frame.header["SUNR"])
+        x_1d_grid_red_arcsec_ext = x_1d_grid_red_ext * (sun_x_fitpoly(10) - sun_x_fitpoly(9.5))/pixel_ratio_to_arcsec
+        y_1d_grid_red_arcsec_bin_ext = np.average(y_1d_grid_red_arcsec_ext.reshape(-1,5),axis=1)
+
+        x_2d_grid_red_arcsec_ext, y_2d_grid_red_arcsec_ext = np.meshgrid(x_1d_grid_red_arcsec_ext, y_1d_grid_red_arcsec_ext)
+        x_2d_grid_red_arcsec_bin_ext, y_2d_grid_red_arcsec_bin_ext = np.meshgrid(x_1d_grid_red_arcsec_ext, y_1d_grid_red_arcsec_bin_ext)
+
+        y_red_step_correction_ext = (sun_y_fitpoly(np.linspace(0,87.5,176) - 4) - sun_y_fitpoly(66))/rsun_context_pixel*rsun_arcsec * \
+                np.float64(FeXI_line_cont_frame.header["MOONR"])/np.float64(FeXI_line_cont_frame.header["SUNR"])
+        y_red_step_correction_ext = np.flip(y_red_step_correction_ext)
+
+        y_2d_grid_red_arcsec_correct_ext = y_2d_grid_red_arcsec_ext + y_red_step_correction_ext[np.newaxis,:]
+        y_2d_grid_red_arcsec_bin_correct_ext = y_2d_grid_red_arcsec_bin_ext + y_red_step_correction_ext[np.newaxis,:]
+
+        x_2d_grid_red_arcsec_rot_ext = np.cos(np.deg2rad(np.abs(rotate_angle_context)))*x_2d_grid_red_arcsec_ext + \
+                                    np.sin(np.deg2rad(np.abs(rotate_angle_context)))*y_2d_grid_red_arcsec_correct_ext
+
+        y_2d_grid_red_arcsec_rot_ext = - np.sin(np.deg2rad(np.abs(rotate_angle_context)))*x_2d_grid_red_arcsec_ext + \
+                                    np.cos(np.deg2rad(np.abs(rotate_angle_context)))*y_2d_grid_red_arcsec_correct_ext
+
+        x_2d_grid_red_arcsec_bin_rot_ext = np.cos(np.deg2rad(np.abs(rotate_angle_context)))*x_2d_grid_red_arcsec_bin_ext + \
+                                    np.sin(np.deg2rad(np.abs(rotate_angle_context)))*y_2d_grid_red_arcsec_bin_correct_ext
+
+        y_2d_grid_red_arcsec_bin_rot_ext = - np.sin(np.deg2rad(np.abs(rotate_angle_context)))*x_2d_grid_red_arcsec_bin_ext + \
+                                    np.cos(np.deg2rad(np.abs(rotate_angle_context)))*y_2d_grid_red_arcsec_bin_correct_ext
+
         
+        pixel_size_red = np.abs(np.mean(np.diff((red_frame_wavelength/order/10.)[FeX_xslice])))
+        inst_width_pix_red = 2.12
+        inst_width_nm_red = pixel_size_red*inst_width_pix_red
+
+        img_center = np.array([300,220])
+        img_xpixel_array = np.arange(FeXI_line_cont_image_rot_scipy.shape[1])
+        img_ypixel_array = np.arange(FeXI_line_cont_image_rot_scipy.shape[0])
+
+        img_xarcsec_array = func_img_xpixel_to_xarcsec(img_xpixel_array)
+        img_yarcsec_array = func_img_ypixel_to_yarcsec(img_ypixel_array)
+
+        colorbar_width = "10%"
+        slit_xshift_red = sun_x_fitpoly(62) - slit_pos
+
+        slit_center_x_red =  - slit_xshift_red/pixel_ratio_to_arcsec*np.cos(np.deg2rad(np.abs(rotate_angle_context)))
+        slit_center_y_red =  slit_xshift_red/pixel_ratio_to_arcsec*np.sin(np.deg2rad(np.abs(rotate_angle_context)))
+
+        fig, ((ax1,ax2,ax3),(ax4,ax5,ax6)) = plt.subplots(2,3,figsize=(15,9),constrained_layout=True)
+        im1 = ax1.pcolormesh(img_xarcsec_array,img_yarcsec_array,FeXI_line_cont_image_rot_scipy,vmin=1,vmax=4,
+                            cmap=cmcm.lajolla,shading="auto",rasterized=True)
+
+        plot_colorbar(im1, ax1,width=colorbar_width)
+
+        red_where_disk_ext = np.where((x_2d_grid_red_arcsec_rot_ext + slit_center_x_red)**2 + \
+                                                (y_2d_grid_red_arcsec_rot_ext + slit_center_y_red)**2 < 940**2)
+
+        for ax_ in (ax2,ax3,ax4,ax5,ax6):
+            ax_.pcolormesh(img_xarcsec_array,img_yarcsec_array,FeXI_line_cont_image_rot_scipy,vmin=1,vmax=4,
+                                cmap=cmcm.lajolla,shading="auto",rasterized=True,alpha=0.6)
+
+        red_line_int_masked = np.copy(red_fit_matrix_ext[1,:,:])
+        red_line_int_masked[red_where_disk_ext] = np.nan
+        norm_red_line_int = ImageNormalize(red_line_int_masked,interval=ManualInterval(0,350),
+                                stretch=SqrtStretch())
+
+        im2 = ax2.pcolormesh(x_2d_grid_red_arcsec_rot_ext + slit_center_x_red,
+                        y_2d_grid_red_arcsec_rot_ext + slit_center_y_red,
+                        red_line_int_masked,cmap=cmcm.bamako_r,rasterized=True,norm=norm_red_line_int)
 
 
+        plot_colorbar(im2, ax2,width=colorbar_width)
 
+        red_cont_masked = np.copy(red_fit_matrix_ext[3,:,:])
+        red_cont_masked[red_where_disk_ext] = np.nan
+        im3 = ax3.pcolormesh(x_2d_grid_red_arcsec_rot_ext + slit_center_x_red,
+                        y_2d_grid_red_arcsec_rot_ext + slit_center_y_red,
+                        red_cont_masked,cmap=cmcm.lajolla,rasterized=True,vmin=1000,vmax=10000)
 
-    
+        im3_clb, im3_clbax = plot_colorbar(im3, ax3,width=colorbar_width)
+        im3_clbax.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
+        im3_clbax.yaxis.get_offset_text().set_fontsize(14)
+        im3_clbax.yaxis.get_offset_text().set(va="bottom",ha="left")
+        im3_clbax.yaxis.get_offset_text().set_position((0,1.01))
+
+        red_line_cont_ratio_masked = red_fit_matrix_ext[1,:,:]/red_fit_matrix_ext[3,:,:]
+        red_line_cont_ratio_masked[red_where_disk_ext] = np.nan
+        im4 = ax4.pcolormesh(x_2d_grid_red_arcsec_rot_ext + slit_center_x_red,
+                        y_2d_grid_red_arcsec_rot_ext + slit_center_y_red,
+                        red_line_cont_ratio_masked,cmap=cmcm.bamako_r,rasterized=True,vmin=0,vmax=0.1)
+
+        plot_colorbar(im4, ax4,width=colorbar_width)
+
+        red_where_disk_bin_ext = np.where((x_2d_grid_red_arcsec_bin_rot_ext + slit_center_x_red)**2 + \
+                                                (y_2d_grid_red_arcsec_bin_rot_ext + slit_center_y_red)**2 < 940**2)
+
+        red_vlos_masked = -(np.copy(red_fit_matrix_bin_ext[0,:,:]) - 637.451)/637.451*const.c.cgs.value*1e-5
+        red_vlos_masked[np.where(red_fit_matrix_bin_ext[1,:,:] < 20)] = np.nan
+        red_vlos_masked[red_where_disk_bin_ext] = np.nan
+        red_vlos_masked = red_vlos_masked - np.nanmedian(red_vlos_masked)
+        red_vlos_masked_err = red_fit_matrix_bin_ext_err[0,:,:]/637.451*const.c.cgs.value*1e-5
+        red_vlos_masked_err[np.where(red_fit_matrix_bin_ext[1,:,:] < 20)] = np.nan
+        red_vlos_masked_err[red_where_disk_bin_ext] = np.nan
+
+        im5 = ax5.pcolormesh(x_2d_grid_red_arcsec_bin_rot_ext + slit_center_x_red,
+                        y_2d_grid_red_arcsec_bin_rot_ext + slit_center_y_red,
+                        red_vlos_masked,cmap=cmcm.vik_r,rasterized=True,vmin=-10,vmax=10)
+
+        plot_colorbar(im5, ax5,width=colorbar_width)
+
+        fwhm_masked = np.copy(red_fit_matrix_bin_ext[2,:,:])
+        fwhm_masked[np.where(red_fit_matrix_bin_ext[1,:,:] < 1)] = np.nan
+        fwhm_masked[red_where_disk_bin_ext] = np.nan
+        fwhm_masked_err = np.copy(red_fit_matrix_bin_ext_err[2,:,:])
+        fwhm_masked_err[np.where(red_fit_matrix_bin_ext[1,:,:] < 1)] = np.nan
+        fwhm_masked_err[red_where_disk_bin_ext] = np.nan
+        veff_masked = np.sqrt(fwhm_masked**2 - inst_width_nm_red**2)/637.451*const.c.cgs.value*1e-5/np.sqrt(4*np.log(2))
+        veff_masked_err = fwhm_masked/np.sqrt(fwhm_masked**2 - inst_width_nm_red**2)* \
+            fwhm_masked_err/637.451*const.c.cgs.value*1e-5/np.sqrt(4*np.log(2))
+        im6 = ax6.pcolormesh(x_2d_grid_red_arcsec_bin_rot_ext + slit_center_x_red,
+                        y_2d_grid_red_arcsec_bin_rot_ext + slit_center_y_red,
+                        veff_masked,cmap=cmcm.batlowK,rasterized=True,vmin=0.06/637.451*const.c.cgs.value*1e-5/np.sqrt(4*np.log(2)),
+                        vmax=0.18/637.451*const.c.cgs.value*1e-5/np.sqrt(4*np.log(2)))
+
+        plot_colorbar(im6, ax6,width=colorbar_width)
+
+        ax1.set_ylabel("Solar-Y [arcsec]",fontsize=14)
+        ax4.set_xlabel("Solar-X [arcsec]",fontsize=14)
+        ax4.set_ylabel("Solar-Y [arcsec]",fontsize=14)
+        ax5.set_xlabel("Solar-X [arcsec]",fontsize=14)
+        ax6.set_xlabel("Solar-X [arcsec]",fontsize=14)
+
+        ax1.set_title(r"Fe \textsc{xi} 789.2\,nm",fontsize=16)
+        ax2.set_title(r"Fe \textsc{x} 637.4\,nm $I_{\rm tot}$ [arb.u.]",fontsize=16)
+        ax3.set_title(r"Fe \textsc{x} 637.4\,nm $I_{\rm cont}$ [arb.u.]",fontsize=16)
+        ax4.set_title(r"Fe \textsc{x} 637.4\,nm $I_{\rm tot}/I_{\rm cont}$",fontsize=16)
+        ax5.set_title(r"Fe \textsc{x} 637.4\,nm $v_{\rm LOS}\ \left[\mathrm{km\,s^{-1}}\right]$",fontsize=16)
+        ax6.set_title(r"Fe \textsc{x} 637.4\,nm $v_{\rm eff}\ \left[\mathrm{km\,s^{-1}}\right]$",fontsize=16)
+
+        xlim_zoomin = [-1400,600]
+        ylim_zoomin = [-1200,1200]
+
+        for ax_ in (ax2,ax3,ax5,ax6):
+            ax_.tick_params(labelleft=False)
+
+        for ax_ in (ax1,ax2,ax3):
+            ax_.tick_params(labelbottom=False)
+
+        for ax_ in (ax1,ax2,ax3,ax4,ax5,ax6):
+            ax_.contour(img_xarcsec_array,img_yarcsec_array,FeXI_line_cont_image_rot_scipy,levels=[3],alpha=0.6,
+                    colors=['#FFC408'])
+            ax_.add_patch(create_rec_eqs())
+            ax_.add_patch(create_limb_circle(rsun_arcsec))
+            ax_.set_aspect(1)
+            ax_.tick_params(labelsize=14)
+            ax_.set_xlim(xlim_zoomin)
+            ax_.set_ylim(ylim_zoomin)
+
+        GetFitProfile(fig, (ax1,ax2,ax3,ax4,ax5,ax6),x_2d_grid_red_arcsec_rot_ext + slit_center_x_red,
+                        y_2d_grid_red_arcsec_rot_ext + slit_center_y_red,
+                        x_2d_grid_red_arcsec_bin_rot_ext + slit_center_x_red,
+                        y_2d_grid_red_arcsec_bin_rot_ext + slit_center_y_red,
+                        red_fit_filename_index, red_path,
+                        totality_red_df_ext,FeX_xslice,flatfield_1d,order, red_fit_matrix_ext,
+                        red_fit_matrix_ext_err, red_fit_matrix_bin_ext, red_fit_matrix_bin_ext_err,
+                        red_vlos_masked, red_vlos_masked_err, veff_masked, veff_masked_err)
+        
+        plt.show()
 
 
 def give_ax_index(target_ax, axes):
@@ -418,25 +631,25 @@ class GetFitProfile:
             y_select_pixel,x_select_pixel = find_nearest_pixel(x_select_loc, y_select_loc, 
                         self.x_grid,self.y_grid)
             file_index = self.file_grid[x_select_pixel]
-            green_frame = CCDData.read(os.path.join(self.path,self.file_df.iloc[file_index,0]),hdu=0,unit="adu")
-            green_frame_wavelength = CCDData.read(os.path.join(self.path,self.file_df.iloc[file_index,0]),hdu=2,unit="adu").data
-            green_frame_wavelength = green_frame_wavelength/self.order/10.
-            profile_to_fit = green_frame.data/self.flatfield_1d[:,np.newaxis]/green_frame.header["exptime"]
+            frame = CCDData.read(os.path.join(self.path,self.file_df.iloc[file_index,0]),hdu=0,unit="adu")
+            frame_wavelength = CCDData.read(os.path.join(self.path,self.file_df.iloc[file_index,0]),hdu=2,unit="adu").data
+            frame_wavelength = frame_wavelength/self.order/10.
+            profile_to_fit = frame.data/self.flatfield_1d[:,np.newaxis]/frame.header["exptime"]
             profile_to_fit = np.flip(profile_to_fit,axis=0)
             profile_to_fit = profile_to_fit[y_select_pixel,self.wvl_slice]
-            green_frame_wavelength_sliced = green_frame_wavelength[self.wvl_slice]
+            frame_wavelength_sliced = frame_wavelength[self.wvl_slice]
 
-            cont_wvl = green_frame_wavelength_sliced[np.r_[self.cont_slice_1, self.cont_slice_2]]
+            cont_wvl = frame_wavelength_sliced[np.r_[self.cont_slice_1, self.cont_slice_2]]
             cont_int = profile_to_fit[np.r_[self.cont_slice_1, self.cont_slice_2]]
             cont_fit_param = np.polyfit(cont_wvl, cont_int, deg = 1)
             cont_fit_poly = np.poly1d(cont_fit_param)
 
-            profile_res = profile_to_fit - cont_fit_poly(green_frame_wavelength_sliced)
-            profile_fit = gaussian(green_frame_wavelength_sliced,*self.fit_matrix[:3,y_select_pixel,x_select_pixel]) + \
-                self.fit_matrix[3,y_select_pixel,x_select_pixel] - np.mean(cont_fit_poly(green_frame_wavelength_sliced))
-            wvl_to_plot = np.linspace(green_frame_wavelength_sliced[0],green_frame_wavelength_sliced[-1],301)
+            profile_res = profile_to_fit - cont_fit_poly(frame_wavelength_sliced)
+            profile_fit = gaussian(frame_wavelength_sliced,*self.fit_matrix[:3,y_select_pixel,x_select_pixel]) + \
+                self.fit_matrix[3,y_select_pixel,x_select_pixel] - np.mean(cont_fit_poly(frame_wavelength_sliced))
+            wvl_to_plot = np.linspace(frame_wavelength_sliced[0],frame_wavelength_sliced[-1],301)
             profile_fit_to_plot = gaussian(wvl_to_plot,*self.fit_matrix[:3,y_select_pixel,x_select_pixel]) + \
-                self.fit_matrix[3,y_select_pixel,x_select_pixel] - np.mean(cont_fit_poly(green_frame_wavelength_sliced))
+                self.fit_matrix[3,y_select_pixel,x_select_pixel] - np.mean(cont_fit_poly(frame_wavelength_sliced))
             fit_res = profile_res - profile_fit
 
             plot_xlim = self.fit_matrix[0,y_select_pixel,x_select_pixel] + \
@@ -454,26 +667,26 @@ class GetFitProfile:
             y_select_pixel,x_select_pixel = find_nearest_pixel(x_select_loc, y_select_loc, 
                         self.x_grid_bin,self.y_grid_bin)
             file_index = self.file_grid[x_select_pixel]
-            green_frame = CCDData.read(os.path.join(self.path,self.file_df.iloc[file_index,0]),hdu=0,unit="adu")
-            green_frame_wavelength = CCDData.read(os.path.join(self.path,self.file_df.iloc[file_index,0]),hdu=2,unit="adu").data
-            green_frame_wavelength = green_frame_wavelength/self.order/10.
-            profile_to_fit = green_frame.data/self.flatfield_1d[:,np.newaxis]/green_frame.header["exptime"]
+            frame = CCDData.read(os.path.join(self.path,self.file_df.iloc[file_index,0]),hdu=0,unit="adu")
+            frame_wavelength = CCDData.read(os.path.join(self.path,self.file_df.iloc[file_index,0]),hdu=2,unit="adu").data
+            frame_wavelength = frame_wavelength/self.order/10.
+            profile_to_fit = frame.data/self.flatfield_1d[:,np.newaxis]/frame.header["exptime"]
             profile_to_fit = np.flip(profile_to_fit,axis=0)
             profile_to_fit = np.mean(profile_to_fit[y_select_pixel*5:(y_select_pixel+1)*5,self.wvl_slice],axis=0)
-            green_frame_wavelength_sliced = green_frame_wavelength[self.wvl_slice]
+            frame_wavelength_sliced = frame_wavelength[self.wvl_slice]
 
-            cont_wvl = green_frame_wavelength_sliced[np.r_[self.cont_slice_1, self.cont_slice_2]]
+            cont_wvl = frame_wavelength_sliced[np.r_[self.cont_slice_1, self.cont_slice_2]]
             cont_int = profile_to_fit[np.r_[self.cont_slice_1, self.cont_slice_2]]
             cont_fit_param = np.polyfit(cont_wvl, cont_int, deg = 1)
             cont_fit_poly = np.poly1d(cont_fit_param)
 
-            profile_res = profile_to_fit - cont_fit_poly(green_frame_wavelength_sliced)
-            profile_fit = gaussian(green_frame_wavelength_sliced,*self.fit_bin_matrix[:3,y_select_pixel,x_select_pixel]) + \
-                self.fit_bin_matrix[3,y_select_pixel,x_select_pixel] - np.mean(cont_fit_poly(green_frame_wavelength_sliced))
+            profile_res = profile_to_fit - cont_fit_poly(frame_wavelength_sliced)
+            profile_fit = gaussian(frame_wavelength_sliced,*self.fit_bin_matrix[:3,y_select_pixel,x_select_pixel]) + \
+                self.fit_bin_matrix[3,y_select_pixel,x_select_pixel] - np.mean(cont_fit_poly(frame_wavelength_sliced))
 
-            wvl_to_plot = np.linspace(green_frame_wavelength_sliced[0],green_frame_wavelength_sliced[-1],301)
+            wvl_to_plot = np.linspace(frame_wavelength_sliced[0],frame_wavelength_sliced[-1],301)
             profile_fit_to_plot = gaussian(wvl_to_plot,*self.fit_bin_matrix[:3,y_select_pixel,x_select_pixel]) + \
-                self.fit_bin_matrix[3,y_select_pixel,x_select_pixel] - np.mean(cont_fit_poly(green_frame_wavelength_sliced))
+                self.fit_bin_matrix[3,y_select_pixel,x_select_pixel] - np.mean(cont_fit_poly(frame_wavelength_sliced))
             fit_res = profile_res - profile_fit
 
             plot_xlim = self.fit_bin_matrix[0,y_select_pixel,x_select_pixel] + \
@@ -497,6 +710,7 @@ class GetFitProfile:
             
         print("X index: {:d} Y index: {:d}".format(x_select_pixel, y_select_pixel))
         print("File index: {:d} Filename: {}".format(file_index,self.file_df.iloc[file_index,0]))
+        # print(vlos_plot,vlos_err_plot,veff_plot)
 
 
         # fig = plt.figure(figsize=(8,6),constrained_layout=True)
@@ -508,16 +722,16 @@ class GetFitProfile:
         fig, (ax,ax_res) = plt.subplots(2,1,figsize=(7,7),gridspec_kw={"height_ratios":[5,2]},constrained_layout=True)
         ax.tick_params(labelbottom=False)
 
-        ax.step(green_frame_wavelength_sliced,profile_res,where="mid",
+        ax.step(frame_wavelength_sliced,profile_res,where="mid",
                     color="#E87A90",label = r"$I_{\rm obs}$",lw=2,zorder=15)
-        ax.fill_between(green_frame_wavelength_sliced,
-        np.ones_like(green_frame_wavelength_sliced)*np.min(profile_res),profile_res,
+        ax.fill_between(frame_wavelength_sliced,
+        np.ones_like(frame_wavelength_sliced)*np.min(profile_res),profile_res,
                     step='mid',color="#FEDFE1",alpha=0.6)
 
         ax.plot(wvl_to_plot,profile_fit_to_plot,color="black",ls="-",label = r"$I_{\rm fit}$",lw=2,
                             zorder=16,alpha=0.7)
         
-        ax_res.scatter(green_frame_wavelength_sliced,fit_res,marker="o",s=15,color="#E9002D")
+        ax_res.scatter(frame_wavelength_sliced,fit_res,marker="o",s=15,color="#E9002D")
         ax_res.axhline(0,ls="--",lw=2,color="#91989F",alpha=0.7) 
 
         ax.get_shared_x_axes().join(ax, ax_res)
@@ -653,6 +867,7 @@ if __name__ == "__main__":
         if args.order not in [51,52,53]:
             args.order = 52
             print("No valid order for Fe X 637.4, use default order = 52.")
+        fit_and_plot("FeX",args.order)
     else:
         sys.exit("Please give the spectral line to plot with -l or --line, FeXIV or FeX")
 
