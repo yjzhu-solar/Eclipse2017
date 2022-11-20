@@ -113,6 +113,6 @@ endfor
 ; save,filename = "../sav/AWSoM/chianti_table/FeXIV_FeX_emiss.sav",FeXIV_emiss_array,FeX_emiss_array,temp,dens,height
     save,filename = "../sav/AWSoM/chianti_table/AWSoM_UCoMP_emiss.sav",FeXIV_emiss_array, FeX_emiss_array, $
     FeXI_emiss_array, FeXIII_10747_emiss_array, FeXIII_10798_emiss_array, FeXV_emiss_array, SVIII_emiss_array, $
-    SXII_emiss_array, NiXV_6703_emiss_array, NiXV_8026_emiss_array temp, dens, height
+    SXII_emiss_array, NiXV_6703_emiss_array, NiXV_8026_emiss_array, temp, dens, height
 
 end
