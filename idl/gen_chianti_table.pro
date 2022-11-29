@@ -1,11 +1,11 @@
 pro gen_chianti_table
 
-n_temps = 100
-n_dens = 20
-temp = 4+0.05*findgen(n_temps)
-dens=5+findgen(n_dens)/2d
+n_temps = 51
+n_dens = 17
+temp = 5+0.05d*findgen(n_temps)
+dens=5+findgen(n_dens)*0.5d
 n_heights = 21
-height = findgen(n_heights)/20d + 1d
+height = findgen(n_heights)*0.05d + 1d
 
 FeXIV_emiss_array = dblarr(n_temps, n_dens, n_heights)
 FeX_emiss_array = dblarr(n_temps, n_dens, n_heights)
@@ -45,6 +45,8 @@ for ii = 0, n_heights - 1 do begin
         FeXIV_emiss_array[jj,*,ii] = FeXIV_emiss_array[jj,*,ii]*ion_frac_FeXIV[jj]
     endfor 
 
+    delvar, FeXIV_data
+
     FeX_data = emiss_calc('fe_10',temp=temp,dens=dens,radtemp=5770d,rphot=height[ii])
     FeX_id = where(FeX_data.lambda eq 6376.29)
     FeX_emiss_array[*,*,ii] = (FeX_data.em)[*,*,FeX_id]*0.83*Fe_abund/4/!PI
@@ -53,6 +55,8 @@ for ii = 0, n_heights - 1 do begin
         FeX_emiss_array[jj,*,ii] = FeX_emiss_array[jj,*,ii]*ion_frac_FeX[jj]
     endfor 
 
+    delvar, FeX_data
+
     FeXI_data = emiss_calc('fe_11',temp=temp,dens=dens,radtemp=5770d,rphot=height[ii])
     FeXI_id = where(FeXI_data.lambda eq 7894.031)
     FeXI_emiss_array[*,*,ii] = (FeXI_data.em)[*,*,FeXI_id]*0.83*Fe_abund/4/!PI
@@ -60,6 +64,8 @@ for ii = 0, n_heights - 1 do begin
     for jj = 0, n_temps - 1 do begin
         FeXI_emiss_array[jj,*,ii] = FeXI_emiss_array[jj,*,ii]*ion_frac_FeXI[jj]
     endfor 
+
+    delvar, FeXI_data
 
     FeXIII_data = emiss_calc('fe_13',temp=temp,dens=dens,radtemp=5770d,rphot=height[ii])
     FeXIII_10747_id = where(FeXIII_data.lambda eq 10749.105)
@@ -72,6 +78,8 @@ for ii = 0, n_heights - 1 do begin
         FeXIII_10798_emiss_array[jj,*,ii] = FeXIII_10798_emiss_array[jj,*,ii]*ion_frac_FeXIII[jj]
     endfor 
 
+    delvar, FeXIII_data
+
     FeXV_data = emiss_calc('fe_15',temp=temp,dens=dens,radtemp=5770d,rphot=height[ii])
     FeXV_id = where(FeXV_data.lambda eq 7062.147)
     FeXV_emiss_array[*,*,ii] = (FeXV_data.em)[*,*,FeXV_id]*0.83*Fe_abund/4/!PI
@@ -79,6 +87,8 @@ for ii = 0, n_heights - 1 do begin
     for jj = 0, n_temps - 1 do begin
         FeXV_emiss_array[jj,*,ii] = FeXV_emiss_array[jj,*,ii]*ion_frac_FeXV[jj]
     endfor 
+
+    delvar, FeXV_data
 
     SVIII_data = emiss_calc('s_8',temp=temp,dens=dens,radtemp=5770d,rphot=height[ii])
     SVIII_id = where(SVIII_data.lambda eq 9916.700)
@@ -88,6 +98,8 @@ for ii = 0, n_heights - 1 do begin
         SVIII_emiss_array[jj,*,ii] = SVIII_emiss_array[jj,*,ii]*ion_frac_SVIII[jj]
     endfor 
 
+    delvar, SVIII_data
+
     SXII_data = emiss_calc('s_12',temp=temp,dens=dens,radtemp=5770d,rphot=height[ii])
     SXII_id = where(SXII_data.lambda eq 7613.073)
     SXII_emiss_array[*,*,ii] = (SXII_data.em)[*,*,SXII_id]*0.83*S_abund/4/!PI
@@ -95,6 +107,8 @@ for ii = 0, n_heights - 1 do begin
     for jj = 0, n_temps - 1 do begin
         SXII_emiss_array[jj,*,ii] = SXII_emiss_array[jj,*,ii]*ion_frac_SXII[jj]
     endfor 
+
+    delvar, SXII_data
 
     NiXV_data = emiss_calc('ni_15',temp=temp,dens=dens,radtemp=5770d,rphot=height[ii])
     NiXV_6703_id = where(NiXV_data.lambda eq 6073.536)
@@ -106,6 +120,8 @@ for ii = 0, n_heights - 1 do begin
         NiXV_6703_emiss_array[jj,*,ii] = NiXV_6703_emiss_array[jj,*,ii]*ion_frac_NiXV[jj]
         NiXV_8026_emiss_array[jj,*,ii] = NiXV_8026_emiss_array[jj,*,ii]*ion_frac_NiXV[jj]
     endfor 
+
+    delvar, NiXV_data
 
 
 endfor

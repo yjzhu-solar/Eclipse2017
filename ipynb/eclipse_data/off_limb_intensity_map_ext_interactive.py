@@ -504,11 +504,11 @@ def fit_and_plot(line,order):
                                                 (y_2d_grid_red_arcsec_bin_rot_ext + slit_center_y_red)**2 < 940**2)
 
         red_vlos_masked = -(np.copy(red_fit_matrix_bin_ext[0,:,:]) - 637.451)/637.451*const.c.cgs.value*1e-5
-        red_vlos_masked[np.where(red_fit_matrix_bin_ext[1,:,:] < 20)] = np.nan
+        red_vlos_masked[np.where(red_fit_matrix_bin_ext[1,:,:] < 10)] = np.nan
         red_vlos_masked[red_where_disk_bin_ext] = np.nan
         red_vlos_masked = red_vlos_masked - np.nanmedian(red_vlos_masked)
         red_vlos_masked_err = red_fit_matrix_bin_ext_err[0,:,:]/637.451*const.c.cgs.value*1e-5
-        red_vlos_masked_err[np.where(red_fit_matrix_bin_ext[1,:,:] < 20)] = np.nan
+        red_vlos_masked_err[np.where(red_fit_matrix_bin_ext[1,:,:] < 10)] = np.nan
         red_vlos_masked_err[red_where_disk_bin_ext] = np.nan
 
         im5 = ax5.pcolormesh(x_2d_grid_red_arcsec_bin_rot_ext + slit_center_x_red,
@@ -518,10 +518,10 @@ def fit_and_plot(line,order):
         plot_colorbar(im5, ax5,width=colorbar_width)
 
         fwhm_masked = np.copy(red_fit_matrix_bin_ext[2,:,:])
-        fwhm_masked[np.where(red_fit_matrix_bin_ext[1,:,:] < 1)] = np.nan
+        fwhm_masked[np.where(red_fit_matrix_bin_ext[1,:,:] < 10)] = np.nan
         fwhm_masked[red_where_disk_bin_ext] = np.nan
         fwhm_masked_err = np.copy(red_fit_matrix_bin_ext_err[2,:,:])
-        fwhm_masked_err[np.where(red_fit_matrix_bin_ext[1,:,:] < 1)] = np.nan
+        fwhm_masked_err[np.where(red_fit_matrix_bin_ext[1,:,:] < 10)] = np.nan
         fwhm_masked_err[red_where_disk_bin_ext] = np.nan
         veff_masked = np.sqrt(fwhm_masked**2 - inst_width_nm_red**2)/637.451*const.c.cgs.value*1e-5/np.sqrt(4*np.log(2))
         veff_masked_err = fwhm_masked/np.sqrt(fwhm_masked**2 - inst_width_nm_red**2)* \
@@ -630,6 +630,7 @@ class GetFitProfile:
         if ax_index in [0,1,2,3]:
             y_select_pixel,x_select_pixel = find_nearest_pixel(x_select_loc, y_select_loc, 
                         self.x_grid,self.y_grid)
+            solarx_select, solary_select = self.x_grid[y_select_pixel,x_select_pixel], self.y_grid[y_select_pixel,x_select_pixel]
             file_index = self.file_grid[x_select_pixel]
             frame = CCDData.read(os.path.join(self.path,self.file_df.iloc[file_index,0]),hdu=0,unit="adu")
             frame_wavelength = CCDData.read(os.path.join(self.path,self.file_df.iloc[file_index,0]),hdu=2,unit="adu").data
@@ -666,6 +667,7 @@ class GetFitProfile:
         elif ax_index in [4,5]:
             y_select_pixel,x_select_pixel = find_nearest_pixel(x_select_loc, y_select_loc, 
                         self.x_grid_bin,self.y_grid_bin)
+            solarx_select, solary_select = self.x_grid_bin[y_select_pixel,x_select_pixel], self.y_grid_bin[y_select_pixel,x_select_pixel]
             file_index = self.file_grid[x_select_pixel]
             frame = CCDData.read(os.path.join(self.path,self.file_df.iloc[file_index,0]),hdu=0,unit="adu")
             frame_wavelength = CCDData.read(os.path.join(self.path,self.file_df.iloc[file_index,0]),hdu=2,unit="adu").data
@@ -745,11 +747,11 @@ class GetFitProfile:
         if "Green" in self.file_df.iloc[file_index,0]:
             title = r"\textbf{{Fe \textsc{{xiv}} 530.3 nm {} order}}".format(inflect_eng.ordinal(self.order)) + title_ext + \
                 "\n" + r"\textbf{{Solar-X: {:.2f} Solar-Y: {:.2f} Distance: {:.2f}}} $\boldsymbol{{R_\odot}}$".format(
-                         x_select_loc, y_select_loc, np.sqrt(x_select_loc**2 + y_select_loc**2)/950.)
+                         solarx_select, solary_select, np.sqrt(solarx_select**2 + solary_select**2)/950.)
         elif "Red" in self.file_df.iloc[file_index,0]:
             title = r"\textbf{{Fe \textsc{{x}} 637.4 nm {} order}}".format(inflect_eng.ordinal(self.order)) + title_ext +\
                 "\n" + r"\textbf{{Solar-X: {:.2f} Solar-Y: {:.2f} Distance: {:.2f}}} $\boldsymbol{{R_\odot}}$".format(
-                         x_select_loc, y_select_loc, np.sqrt(x_select_loc**2 + y_select_loc**2)/950.)
+                         solarx_select, solary_select, np.sqrt(solarx_select**2 + solary_select**2)/950.)
         ax.set_title(title,fontsize=16)
 
         ax.set_ylabel("Intensity [arb.u]",fontsize=16)
