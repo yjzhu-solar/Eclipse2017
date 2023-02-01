@@ -207,7 +207,7 @@ def fit_and_plot(line,order):
         slit_center_x_green =  - slit_xshift_green/pixel_ratio_to_arcsec*np.cos(np.deg2rad(np.abs(rotate_angle_context)))
         slit_center_y_green =  slit_xshift_green/pixel_ratio_to_arcsec*np.sin(np.deg2rad(np.abs(rotate_angle_context)))
 
-        fig, ((ax1,ax2,ax3),(ax4,ax5,ax6)) = plt.subplots(2,3,figsize=(14,9.5),constrained_layout=True,
+        fig, ((ax1,ax2,ax3),(ax4,ax5,ax6)) = plt.subplots(2,3,figsize=(11.2,7.6),constrained_layout=True,
                         gridspec_kw={'wspace':0.0})
         im1 = ax1.pcolormesh(img_xarcsec_array,img_yarcsec_array,FeXIV_line_cont_image_rot_scipy,vmin=0.2,vmax=1.2,
                             cmap=cmr.jungle_r,shading="auto",rasterized=True)
@@ -243,7 +243,7 @@ def fit_and_plot(line,order):
         im3_clbax.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
         im3_clbax.yaxis.get_offset_text().set_fontsize(14)
         im3_clbax.yaxis.get_offset_text().set(va="bottom",ha="left")
-        im3_clbax.yaxis.get_offset_text().set_position((0,1.01))
+        im3_clbax.yaxis.get_offset_text().set_position((1,1.1))
 
         green_line_cont_ratio_masked = green_fit_matrix_ext[1,:,:]/green_fit_matrix_ext[3,:,:]
         green_line_cont_ratio_masked[green_where_disk_ext] = np.nan

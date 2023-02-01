@@ -23,6 +23,8 @@ from astropy.visualization import ZScaleInterval, ImageNormalize, LogStretch, As
          ManualInterval, SqrtStretch
 import os
 
+np.seterr(all="ignore")
+
 
 m_p = const.m_p.cgs.value
 k_b = const.k_B.cgs.value
@@ -96,7 +98,8 @@ def fit_all_spec(syn_profiles, wvl_grid,line_number,line_wvl_init,int_max_init,f
 
 
 # awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0017_run03_75/box_run0017_run03_75.sav',verbose = False,python_dict=True)
-awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0019_run03_75/box_run0019_run03_75.sav',verbose = False,python_dict=True)
+# awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0019_run03_75/box_run0019_run03_75.sav',verbose = False,python_dict=True)
+awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0021_run01_75_5th/box_run0021_run01_75_5th.sav',verbose = False,python_dict=True)
 
 p_e_ratio = 0.83
 awsom_x = awsom_data_set['x'][0,0,0,:]
@@ -172,16 +175,27 @@ FeX_int_max_init = 100.
 FeX_fwhm_init = 0.1
 FeX_emiss_array_name = "fex_emiss_array"
 
-# save_path = "../../sav/AWSoM/syn_fit/box_run0017_run03_75/"
-save_path = "../../sav/AWSoM/syn_fit/box_run0019_run03_75/"
+FeXIII_10747_wvl_grid = np.linspace(1074.1,1075.3,40)
+FeXIII_10747_rest_wvl = 1074.68
+FeXIII_10747_int_max_init = 100.
+FeXIII_10747_fwhm_init = 0.2
+FeXIII_10747_emiss_array_name = "fexiii_10747_emiss_array"
 
-emiss_array_names = [FeXIV_emiss_array_name, FeX_emiss_array_name]
-wvl_grids = [FeXIV_wvl_grid, FeX_wvl_grid]
-rest_wvls = [FeXIV_rest_wvl, FeX_rest_wvl]
-ion_amus = [Fe_amu, Fe_amu]
-int_max_inits = [FeXIV_int_max_init, FeX_int_max_init]
-fwhm_inits = [FeXIV_fwhm_init, FeX_fwhm_init]
-filenames = ["FeXIV_530_synspec_emiss.h5", "FeX_637_synspec_emiss.h5"]
+# save_path = "../../sav/AWSoM/syn_fit/box_run0017_run03_75/"
+# save_path = "../../sav/AWSoM/syn_fit/box_run0019_run03_75/"
+save_path = "../../sav/AWSoM/syn_fit/box_run0021_run01_75_5th/"
+
+emiss_array_names = [FeXIV_emiss_array_name, FeX_emiss_array_name,
+                    FeXIII_10747_emiss_array_name]
+wvl_grids = [FeXIV_wvl_grid, FeX_wvl_grid, FeXIII_10747_wvl_grid]
+rest_wvls = [FeXIV_rest_wvl, FeX_rest_wvl, FeXIII_10747_rest_wvl]
+ion_amus = [Fe_amu, Fe_amu, Fe_amu]
+int_max_inits = [FeXIV_int_max_init, FeX_int_max_init, 
+            FeXIII_10747_int_max_init]
+fwhm_inits = [FeXIV_fwhm_init, FeX_fwhm_init, 
+            FeXIII_10747_fwhm_init]
+filenames = ["FeXIV_530_synspec_emiss.h5", "FeX_637_synspec_emiss.h5",
+            "FeXIII_1074_synspec_emiss.h5"]
 
 
 for ii, (emiss_array_, wvl_grid_, rest_wvl_, ion_amu_, int_max_init_, fwhm_init_, filename_) in \

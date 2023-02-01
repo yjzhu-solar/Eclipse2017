@@ -62,6 +62,7 @@ def show_fit(line_name, path, veff_min, veff_max):
         awsom_y = hf['awsom_y'][:]
         awsom_z =  hf['awsom_z'][:]
         rest_wvl = hf['syn_profiles'].attrs['rest_wvl']
+    ion_name, wvl_name = line_name.split("_")
 
     awsom_filename = glob(os.path.join(path,"box*.sav"))
     awsom_data_set = scipy.io.readsav(awsom_filename[0],verbose = False,python_dict=True)
@@ -71,8 +72,9 @@ def show_fit(line_name, path, veff_min, veff_max):
     te_box = p_e/n/k_b
     p_e_ratio = 0.83
     ne_box = n/p_e_ratio
+    
 
-    if line_name == "FeXIV_530":
+    if ion_name in ["FeXIV", "FeXIII"]:
         solarx_slice = slice(0,150)
         solary_slice = slice(25,230)
         syn_profiles = syn_profiles[solary_slice,solarx_slice,:]
@@ -88,14 +90,14 @@ def show_fit(line_name, path, veff_min, veff_max):
 
     awsom_z_grid, awsom_y_grid, awsom_x_grid = np.meshgrid(awsom_z,awsom_y,awsom_x,indexing="ij")
     
-    fig, axes = plt.subplots(1,3,figsize=(12,4),constrained_layout=True)
+    fig, axes = plt.subplots(1,3,figsize=(11/200*len(awsom_y),4/250*len(awsom_z)),constrained_layout=True)
     matrix_mask_TR = np.copy(fit_matrix)
     mask_transition_region_fit = np.where(np.sqrt(awsom_y_grid[:,:,150]**2 + awsom_z_grid[:,:,150]**2)[:,:,np.newaxis]* \
                             np.ones_like(matrix_mask_TR) <= 1.05) 
     matrix_mask_TR[mask_transition_region_fit] = np.nan
 
     norm_matrix_int_mask_TR = ImageNormalize(matrix_mask_TR[:,:,1],interval=ZScaleInterval(),stretch=SqrtStretch())
-    ion_name, wvl_name = line_name.split("_")
+    
     title = r"{:} \textsc{{{:}}} {:} nm".format(ion_name[:2],ion_name[2:].lower(),wvl_name)
     im_int = axes[0].pcolormesh(awsom_y,awsom_z, matrix_mask_TR[:,:,1],norm=norm_matrix_int_mask_TR,
     cmap=cmcm.lajolla, shading="auto",rasterized=True)
@@ -215,7 +217,7 @@ class GetFitProfile:
                             zorder=16,alpha=0.7)
 
         ln_emiss = ax2.plot(self.los_grid, self.emiss_box[y_select_pixel,x_select_pixel],color="#BDC0BA",zorder=0,alpha=0.8,
-                label=r"$\epsilon_{ij}\Delta h/4\pi$",lw=2)
+                label=r"$\epsilon_{ij}\Delta s/4\pi$",lw=2)
 
         ln_te = ax2_te.plot(self.los_grid, self.te_box[y_select_pixel,x_select_pixel]/1e6,color="#8A6BBE",zorder=0,alpha=0.8,
                 label=r"$T_e$",ls="-.",lw=2)
@@ -234,7 +236,7 @@ class GetFitProfile:
                 borderaxespad=0.)
 
         ax3.plot(self.los_grid, self.emiss_box[y_select_pixel,x_select_pixel],color="#BDC0BA",zorder=0,alpha=0.8,
-                label=r"$\epsilon_{ij}\Delta h/4\pi$",lw=2)
+                label=r"$\epsilon_{ij}\Delta s/4\pi$",lw=2)
         ln_veff = ax3_veff.plot(self.los_grid, self.veff_box[y_select_pixel,x_select_pixel],color="#F596AA",zorder=0,alpha=0.8,
                 label=r"$v_{\rm eff}$",ls="-.",lw=2)
         ax3_veff.set_ylabel(r"$v_{\rm eff}\ \mathrm{[km\,s^{-1}]}$",fontsize=16)
@@ -246,8 +248,8 @@ class GetFitProfile:
 
         ax1.set_ylabel(r"$I_\lambda\ [\mathrm{erg\,s^{-1}\,cm^{-2}\,nm^{-1}\,sr^{-1}}]$",fontsize=16)
         ax1.set_xlabel(r"$\textrm{Wavelength}\ \lambda\ [\mathrm{nm}]$",fontsize=16)
-        subfigs[1].supylabel(r"$\epsilon_{ij}\Delta h/4\pi$ " + r"$[\mathrm{erg\,s^{-1}\,cm^{-2}\,nm^{-1}\,sr^{-1}}]$",fontsize=16)
-        ax3.set_xlabel(r"$h_{\rm LOS} [R_\odot]$",fontsize=16)
+        subfigs[1].supylabel(r"$\epsilon_{ij}\Delta s/4\pi$ " + r"$[\mathrm{erg\,s^{-1}\,cm^{-2}\,sr^{-1}}]$",fontsize=16)
+        ax3.set_xlabel(r"$s_{\rm LOS} [R_\odot]$",fontsize=16)
 
         ax3_leg_list = [*ln_veff, *ln_vlos]
         ax3.legend(ax3_leg_list,[leg_.get_label() for leg_ in ax3_leg_list],
