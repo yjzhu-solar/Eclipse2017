@@ -49,7 +49,7 @@ def create_limb_circle(rsun):
     return patches.Circle((0,0),rsun,linewidth=2,edgecolor="grey",
                         facecolor="none",alpha=0.6,ls="--")
 
-def show_fit(line_name, path, veff_min, veff_max):
+def show_fit(line_name, path, veff_min, veff_max, int_scale, int_min, int_max, save_path):
     with h5py.File(os.path.join(path,line_name+"_synspec_emiss.h5"), 'r') as hf:
         syn_profiles = hf['syn_profiles'][:]
         wvl_grid = hf['wvl_grid'][:]
@@ -96,7 +96,17 @@ def show_fit(line_name, path, veff_min, veff_max):
                             np.ones_like(matrix_mask_TR) <= 1.05) 
     matrix_mask_TR[mask_transition_region_fit] = np.nan
 
-    norm_matrix_int_mask_TR = ImageNormalize(matrix_mask_TR[:,:,1],interval=ZScaleInterval(),stretch=SqrtStretch())
+    if int_scale == "sqrt":
+        strech = SqrtStretch()
+    elif int_scale == "log":
+        strech = LogStretch()
+    
+    if (int_min is not None) and (int_max is not None):
+        interval = ManualInterval(int_min,int_max)
+    else:
+        interval=ZScaleInterval()
+    norm_matrix_int_mask_TR = ImageNormalize(matrix_mask_TR[:,:,1],interval=interval,stretch=strech)
+
     
     title = r"{:} \textsc{{{:}}} {:} nm".format(ion_name[:2],ion_name[2:].lower(),wvl_name)
     im_int = axes[0].pcolormesh(awsom_y,awsom_z, matrix_mask_TR[:,:,1],norm=norm_matrix_int_mask_TR,
@@ -135,7 +145,10 @@ def show_fit(line_name, path, veff_min, veff_max):
     GetFitProfile(fig,axes,awsom_y_grid[:,:,0],awsom_z_grid[:,:,0],awsom_x,syn_profiles,emiss_box,title,
                     wvl_grid,rest_wvl,fit_matrix,err_matrix,te_box=te_box,ne_box=ne_box,veff_box=veff_box,vlos_box=vlos_box)
     
-    plt.show()
+    if save_path is not None:
+        plt.savefig(fname=save_path, format="pdf", dpi=300)
+    else:
+        plt.show()
 
 def give_ax_index(target_ax, axes):
     for ii, ax_ in enumerate(axes):
@@ -301,13 +314,20 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-l","--line", help="the spectral line to plot, e.g., FeXIV_530, FeX_637")
     parser.add_argument("-fp","--filepath", help="path of the fitting file")
-    parser.add_argument("-mi","--veffmin", help="minimum value that the veff colormap covers")
-    parser.add_argument("-ma","--veffmax", help="maximum value that the veff colormap covers")
+    parser.add_argument("-mi","--veffmin", help="minimum value of the veff colormap")
+    parser.add_argument("-ma","--veffmax", help="maximum value of the veff colormap")
+    parser.add_argument("-i1","--intmax", help="maximum of the int colormap")
+    parser.add_argument("-i0","--intmin", help="minimum of the int colormap")
+    parser.add_argument("-is","--intscale",help="scale of the intensity, log or sqrt")
+    parser.add_argument("-sp","--savepath",help="path to save the plot")
 
     args = parser.parse_args()
     if args.line is None:
         args.line = "FeXIV_530"
     if args.filepath is None:
         args.filepath = "../../sav/AWSoM/syn_fit/box_run0019_run03_75/"
+    if args.intscale is None:
+        args.intscale = "sqrt"
 
-    show_fit(args.line, args.filepath, args.veffmin, args.veffmax)
+    show_fit(args.line, args.filepath, args.veffmin, args.veffmax, args.intscale,
+    args.intmin, args.intmax,  args.savepath)

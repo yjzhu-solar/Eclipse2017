@@ -10,7 +10,7 @@ from matplotlib import patches
 import scipy.io
 import astropy.constants as const
 import juanfit
-from juanfit import SpectrumFitSingle,SpectrumFitRow, gaussian
+from juanfit import SpectrumFitSingle,SpectrumFit2D, gaussian
 import copy
 from scipy import interpolate
 from mpl_toolkits.axes_grid1.inset_locator import inset_axes
@@ -76,30 +76,38 @@ def calc_profile(emiss_table,dens,temp,height,height_grid,dens_grid,te_grid,tp_g
 def fit_all_spec(syn_profiles, wvl_grid,line_number,line_wvl_init,int_max_init,fwhm_init):
     fit_matrix = np.full_like(syn_profiles[:,:,:4],np.nan)
     err_matrix = np.full_like(syn_profiles[:,:,:4],np.nan)
-    for ii in range(syn_profiles.shape[1]):
-        fit_row_model = SpectrumFitRow(syn_profiles[:,ii,:],wvl_grid,line_number=line_number,line_wvl_init=line_wvl_init,
-                                        int_max_init=int_max_init,fwhm_init=fwhm_init)
 
-        try:
-            fit_row_model.run_lse()
-        except RuntimeError:
-            pass
+    fit_row_model = SpectrumFit2D(syn_profiles[:,:,:],wvl_grid,line_number=line_number,line_wvl_init=line_wvl_init,
+                                    int_max_init=int_max_init,fwhm_init=fwhm_init)
 
-        fit_matrix[:,ii,0] = fit_row_model.line_wvl_fit[:,0]
-        err_matrix[:,ii,0] = fit_row_model.line_wvl_err[:,0]
-        fit_matrix[:,ii,1] = fit_row_model.int_total_fit[:,0]
-        err_matrix[:,ii,1] = fit_row_model.int_total_err[:,0]
-        fit_matrix[:,ii,2] = fit_row_model.fwhm_fit[:,0]
-        err_matrix[:,ii,2] = fit_row_model.fwhm_err[:,0]
-        fit_matrix[:,ii,3] = fit_row_model.int_cont_fit[:]
-        err_matrix[:,ii,3] = fit_row_model.int_cont_err[:]
+    fit_row_model.run_lse_mp(ncpu=4,absolute_sigma=False,prev_init=False)
+
+    fit_matrix[:,:,0] = fit_row_model.line_wvl_fit[:,:,0]
+    err_matrix[:,:,0] = fit_row_model.line_wvl_err[:,:,0]
+    fit_matrix[:,:,1] = fit_row_model.int_total_fit[:,:,0]
+    err_matrix[:,:,1] = fit_row_model.int_total_err[:,:,0]
+    fit_matrix[:,:,2] = fit_row_model.fwhm_fit[:,:,0]
+    err_matrix[:,:,2] = fit_row_model.fwhm_err[:,:,0]
+    fit_matrix[:,:,3] = fit_row_model.int_cont_fit[:]
+    err_matrix[:,:,3] = fit_row_model.int_cont_err[:]
 
     return fit_matrix, err_matrix
 
 
 # awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0017_run03_75/box_run0017_run03_75.sav',verbose = False,python_dict=True)
 # awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0019_run03_75/box_run0019_run03_75.sav',verbose = False,python_dict=True)
-awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0021_run01_75_5th/box_run0021_run01_75_5th.sav',verbose = False,python_dict=True)
+# awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0021_run01_75_5th/box_run0021_run01_75_5th.sav',verbose = False,python_dict=True)
+# awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0023_run03_75_5th/box_run0023_run03_75_5th.sav',verbose = False,python_dict=True)
+# awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0024_run03_75_5th/box_run0024_run03_75_5th.sav',verbose = False,python_dict=True)
+# awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0025_run01_75_5th/box_run0025_run01_75_5th.sav',verbose = False,python_dict=True)
+# awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0026_run03_75_5th/box_run0026_run03_75_5th.sav',verbose = False,python_dict=True)
+# awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0027_run03_75_5th/box_run0027_run03_75_5th.sav',verbose = False,python_dict=True)
+# awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0028_run01_75_5th/box_run0028_run01_75_5th.sav',verbose = False,python_dict=True)
+# awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0031_run01_75_5th/box_run0031_run01_75_5th.sav',verbose = False,python_dict=True)
+# awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0032_run01_75_5th/box_run0032_run01_75_5th.sav',verbose = False,python_dict=True)
+# awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0033_run01_75_5th/box_run0033_run01_75_5th.sav',verbose = False,python_dict=True)
+awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0034_run01_75_5th/box_run0034_run01_75_5th.sav',verbose = False,python_dict=True)
+
 
 p_e_ratio = 0.83
 awsom_x = awsom_data_set['x'][0,0,0,:]
@@ -183,7 +191,18 @@ FeXIII_10747_emiss_array_name = "fexiii_10747_emiss_array"
 
 # save_path = "../../sav/AWSoM/syn_fit/box_run0017_run03_75/"
 # save_path = "../../sav/AWSoM/syn_fit/box_run0019_run03_75/"
-save_path = "../../sav/AWSoM/syn_fit/box_run0021_run01_75_5th/"
+# save_path = "../../sav/AWSoM/syn_fit/box_run0021_run01_75_5th/"
+# save_path = "../../sav/AWSoM/syn_fit/box_run0023_run03_75_5th/"
+# save_path = "../../sav/AWSoM/syn_fit/box_run0024_run03_75_5th/"
+# save_path = "../../sav/AWSoM/syn_fit/box_run0025_run01_75_5th/"
+# save_path = "../../sav/AWSoM/syn_fit/box_run0026_run03_75_5th/"
+# save_path = "../../sav/AWSoM/syn_fit/box_run0027_run03_75_5th/"
+# save_path = "../../sav/AWSoM/syn_fit/box_run0028_run01_75_5th/"
+# save_path = "../../sav/AWSoM/syn_fit/box_run0031_run01_75_5th/"
+# save_path = "../../sav/AWSoM/syn_fit/box_run0032_run01_75_5th/"
+# save_path = "../../sav/AWSoM/syn_fit/box_run0033_run01_75_5th/"
+save_path = "../../sav/AWSoM/syn_fit/box_run0034_run01_75_5th/"
+
 
 emiss_array_names = [FeXIV_emiss_array_name, FeX_emiss_array_name,
                     FeXIII_10747_emiss_array_name]
