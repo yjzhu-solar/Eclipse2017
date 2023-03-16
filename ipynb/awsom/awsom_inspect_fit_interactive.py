@@ -75,8 +75,8 @@ def show_fit(line_name, path, veff_min, veff_max, int_scale, int_min, int_max, s
     
 
     if ion_name in ["FeXIV", "FeXIII"]:
-        solarx_slice = slice(0,150)
-        solary_slice = slice(25,230)
+        solarx_slice = slice(0,None)
+        solary_slice = slice(0,None)
         syn_profiles = syn_profiles[solary_slice,solarx_slice,:]
         emiss_box = emiss_box[solary_slice,solarx_slice,:]
         vlos_box = vlos_box[solary_slice,solarx_slice,:]
