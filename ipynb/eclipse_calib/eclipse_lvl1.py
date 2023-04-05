@@ -52,7 +52,7 @@ with h5py.File("../../sav/Eclipse/Bias/master_bias_dc_red_3s_proto.h5", 'r') as 
 with h5py.File("../../sav/Eclipse/Bias/master_bias_dc_green_1s_proto.h5", 'r') as hf:
     bias_dc_green_1s = hf['image'][:]
 
-with h5py.File("../../sav/Eclipse/Bias/master_bias_dc_red_3s_proto.h5", 'r') as hf:
+with h5py.File("../../sav/Eclipse/Bias/master_bias_dc_green_3s_proto.h5", 'r') as hf:
     bias_dc_green_3s = hf['image'][:]
 
 #Read curvature corrections
@@ -97,8 +97,10 @@ for ii, row_ in totality_green_df_cut.iterrows():
 
     if exptime <= 1.5:
         green_img_unbias = green_img - bias_dc_green_1s
+        green_readout_noise = 12.2
     elif 2.5 < exptime < 3.5:
         green_img_unbias = green_img - bias_dc_green_3s
+        green_readout_noise = 13.1
     
     green_img_curv_corr = ndimage.map_coordinates(green_img_unbias[testy_slice_mapcoor_green, testx_slice_mapcoor_green],
                                                     (ypos_map_coordinate_green, xpos_map_coordinate_green),order=1)
@@ -106,6 +108,7 @@ for ii, row_ in totality_green_df_cut.iterrows():
     green_hdr["comments"] = "Green detector. Bias removed, curvature corrected."
     green_hdr["XWS"] = (xstart_pixel_green, "X window start after the curvature correction")
     green_hdr["YWS"] = (ystart_pixel_green, "X window start after the curvature correction")
+    green_hdr["RONOISE"] = (green_readout_noise, "Readout noise")
     wavelength_green_hdr = fits.Header()
     wavelength_green_hdr["comments"] = "Wavelength calibrated from laboratory hydrogen and helium frames."
     wavelength_shift_green_hdr = fits.Header()
@@ -126,8 +129,10 @@ for ii, row_ in totality_red_df_cut.iterrows():
 
     if exptime <= 1.5:
         red_img_unbias = red_img - bias_dc_red_1s
+        red_readout_noise = 9.92
     elif 2.5 < exptime < 3.5:
         red_img_unbias = red_img - bias_dc_red_3s
+        red_readout_noise = 10.2
     
     red_img_curv_corr = ndimage.map_coordinates(red_img_unbias[testy_slice_mapcoor_red, testx_slice_mapcoor_red],
                                                     (ypos_map_coordinate_red, xpos_map_coordinate_red),order=1)
@@ -135,6 +140,7 @@ for ii, row_ in totality_red_df_cut.iterrows():
     red_hdr["comments"] = "Red detector. Bias removed, curvature corrected."
     red_hdr["XWS"] = (xstart_pixel_red, "X window start after the curvature correction")
     red_hdr["YWS"] = (ystart_pixel_red, "X window start after the curvature correction")
+    red_hdr["RONOISE"] = (red_readout_noise, "Readout noise")
     wavelength_red_hdr = fits.Header()
     wavelength_red_hdr["comments"] = "Wavelength calibrated from laboratory hydrogen and helium frames."
     wavelength_shift_red_hdr = fits.Header()

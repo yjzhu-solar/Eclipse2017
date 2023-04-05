@@ -5,28 +5,46 @@ import eispac
 if __name__ == '__main__':
     # input data and template files
     data_filepath = '../../src/EIS/level1/NPCH_DB/data_eis/eis_20170821_110818.data.h5'
+    fe_08_185_template_filepath = '../../sav/EIS/fit_template/fe_08_185_213.1c.template.h5'
+    fe_08_186_template_filepath = '../../sav/EIS/fit_template/fe_08_186_601.1c.template.h5'
     fe_10_184_template_filepath = '../../sav/EIS/fit_template/fe_10_184_536.1c.template.h5'
-    # fe_10_257_template_filepath = '../../sav/EIS/fit_template/fe_10_257_262.4c.template.h5'
+    fe_10_257_template_filepath = '../../sav/EIS/fit_template/fe_10_257_262.4c.template.h5'
+    fe_11_182_template_filepath = '../../sav/EIS/fit_template/fe_11_188_216.2c.template.h5'
     fe_11_188_template_filepath = '../../sav/EIS/fit_template/fe_11_188_216.2c.template.h5'
-    # fe_11_257_template_filepath = '../../sav/EIS/fit_template/fe_11_257_547.4c.template.h5'
+    fe_11_257_template_filepath = '../../sav/EIS/fit_template/fe_11_257_547.4c.template.h5'
     fe_12_186_template_filepath = '../../sav/EIS/fit_template/fe_12_186_880.1c.template.h5'
-    # fe_12_192_template_filepath = '../../sav/EIS/fit_template/fe_12_192_394.1c.template.h5'
-    fe_12_195_template_filepath = '../../sav/EIS/fit_template/fe_12_195_119.2c.template.h5'
+    fe_12_192_template_filepath = '../../sav/EIS/fit_template/fe_12_192_394.1c.template.h5'
+    fe_12_195_template_filepath = '../../sav/EIS/fit_template/fe_12_195_119.1c.template.h5'
     fe_14_264_template_filepath = '../../sav/EIS/fit_template/fe_14_264_787.1c.template.h5'
     si_10_258_template_filepath = '../../sav/EIS/fit_template/si_10_258_375.1c.template.h5'
     si_10_261_template_filepath = '../../sav/EIS/fit_template/si_10_261_058.1c.template.h5'
 
     fit_res = []
 
+    fe_08_185_tmplt = eispac.read_template(fe_08_185_template_filepath)
+    data_cube = eispac.read_cube(data_filepath, fe_08_185_tmplt.central_wave)
+    fe_08_185_fit_res = eispac.fit_spectra(data_cube, fe_08_185_tmplt, ncpu='max')
+    fit_res.append(fe_08_185_fit_res)
+
+    fe_08_186_tmplt = eispac.read_template(fe_08_186_template_filepath)
+    data_cube = eispac.read_cube(data_filepath, fe_08_186_tmplt.central_wave)
+    fe_08_186_fit_res = eispac.fit_spectra(data_cube, fe_08_186_tmplt, ncpu='max')
+    fit_res.append(fe_08_186_fit_res)
+
     fe_10_184_tmplt = eispac.read_template(fe_10_184_template_filepath)
     data_cube = eispac.read_cube(data_filepath, fe_10_184_tmplt.central_wave)
     fe_10_184_fit_res = eispac.fit_spectra(data_cube, fe_10_184_tmplt, ncpu='max')
     fit_res.append(fe_10_184_fit_res)
 
-    # fe_10_257_tmplt = eispac.read_template(fe_10_257_template_filepath)
-    # data_cube = eispac.read_cube(data_filepath, fe_10_257_tmplt.central_wave)
-    # fe_10_257_fit_res = eispac.fit_spectra(data_cube, fe_10_257_tmplt, ncpu='max')
-    # fit_res.append(fe_10_257_fit_res)
+    fe_10_257_tmplt = eispac.read_template(fe_10_257_template_filepath)
+    data_cube = eispac.read_cube(data_filepath, fe_10_257_tmplt.central_wave)
+    fe_10_257_fit_res = eispac.fit_spectra(data_cube, fe_10_257_tmplt, ncpu='max')
+    fit_res.append(fe_10_257_fit_res)
+
+    fe_11_182_tmplt = eispac.read_template(fe_11_182_template_filepath)
+    data_cube = eispac.read_cube(data_filepath, fe_11_182_tmplt.central_wave)
+    fe_11_182_fit_res = eispac.fit_spectra(data_cube, fe_11_182_tmplt, ncpu='max')
+    fit_res.append(fe_11_182_fit_res)
 
     fe_11_188_tmplt = eispac.read_template(fe_11_188_template_filepath)
     data_cube = eispac.read_cube(data_filepath, fe_11_188_tmplt.central_wave)

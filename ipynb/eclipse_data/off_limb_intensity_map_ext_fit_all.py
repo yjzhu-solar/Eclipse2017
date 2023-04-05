@@ -25,61 +25,36 @@ from scipy.io import readsav
 import copy
 from juanfit import SpectrumFitSingle, SpectrumFitRow, gaussian
 
-def calculate_intensity(image, wvl, wavelength_slice, ypix_slice, cont_slice_1, cont_slice_2):
+def fit_spectra(image,err,wvl,wavelength_slice,ypix_slice,cont_slice_1,cont_slice_2,nbin=5,plot_fit=False):
     image_sliced = image[ypix_slice, wavelength_slice]
-    wvl_sliced = wvl[wavelength_slice]
-    if ypix_slice.stop is not None:
-        intensity_sliced = np.zeros(ypix_slice.stop - ypix_slice.start)
-        cont_sliced = np.zeros(ypix_slice.stop - ypix_slice.start)
-    else:
-        intensity_sliced = np.zeros(350)
-        cont_sliced = np.zeros(350)
-        
-    for ii in range(len(intensity_sliced)):
-        intensity_sliced[ii], cont_sliced[ii] = calculate_intensity_single(wvl_sliced[np.r_[cont_slice_1, cont_slice_2]], 
-                                image_sliced[ii, np.r_[cont_slice_1, cont_slice_2]],wvl_sliced, image_sliced[ii,:])
-
-    return intensity_sliced, cont_sliced
-
-def fit_spectra(image, wvl, wavelength_slice, ypix_slice, cont_slice_1, cont_slice_2,nbin=5,plot_fit=False):
-    image_sliced = image[ypix_slice, wavelength_slice]
+    err_sliced = err[ypix_slice, wavelength_slice]
     if (nbin == 1) or (nbin is None):
         pass
     else:
-        image_sliced = np.average(image_sliced.reshape(-1,nbin,image_sliced.shape[1]),axis=1)
+        image_sliced = np.nanmean(image_sliced.reshape(-1,nbin,image_sliced.shape[1]),axis=1)
+        err_sliced = np.sqrt(np.nanmean((err_sliced**2).reshape(-1,nbin,image_sliced.shape[1]),axis=1))/np.sqrt(nbin)
     wvl_sliced = wvl[wavelength_slice]
-    fit_params = np.zeros((4,image_sliced.shape[0]))
-    fit_errs = np.zeros((4,image_sliced.shape[0]))
+    fit_params = np.zeros((5,image_sliced.shape[0]))
+    fit_errs = np.zeros((5,image_sliced.shape[0]))
 
     for ii in range(image_sliced.shape[0]):
         fit_params[:,ii], fit_errs[:,ii] = fit_spectra_single(wvl_sliced[np.r_[cont_slice_1, cont_slice_2]], 
-                                image_sliced[ii, np.r_[cont_slice_1, cont_slice_2]],wvl_sliced, image_sliced[ii,:],
-                                plot_fit=plot_fit)
+                                image_sliced[ii, np.r_[cont_slice_1, cont_slice_2]], wvl_sliced, image_sliced[ii,:],
+                                err_sliced[ii,:], plot_fit=plot_fit)
 
     return fit_params, fit_errs
 
-    
-def calculate_intensity_single(cont_wvl, cont_int, wvl, int):
-    cont_fit_param = np.polyfit(cont_wvl, cont_int, deg = 1)
-    cont_fit_poly = np.poly1d(cont_fit_param)
-
-    int_res = int - cont_fit_poly(wvl)
-    int_sum = np.sum(int_res)
-
-    return int_sum, np.mean(cont_fit_poly(wvl))
-
-
-def fit_spectra_single(cont_wvl, cont_int, wvl, int,plot_fit=False):
+def fit_spectra_single(cont_wvl, cont_int, wvl, int, err, plot_fit=False):
     cont_fit_param = np.polyfit(cont_wvl, cont_int, deg = 1)
     cont_fit_poly = np.poly1d(cont_fit_param)
 
     int_res = int - cont_fit_poly(wvl)
 
-    fit_model = SpectrumFitSingle(data=int_res,wvl=wvl,line_number=1,
+    fit_model = SpectrumFitSingle(data=int_res,err=err,wvl=wvl,line_number=1,
                         line_wvl_init=wvl[np.argmax(int_res)],int_max_init=int_res.max(),fwhm_init=0.1)
 
     try:
-        fit_model.run_lse()
+        fit_model.run_lse(absolute_sigma=False)
     except RuntimeError:
         pass
     if plot_fit:
@@ -87,9 +62,9 @@ def fit_spectra_single(cont_wvl, cont_int, wvl, int,plot_fit=False):
         print(fit_model.fwhm_fit)
 
     return np.array([fit_model.line_wvl_fit[0], fit_model.int_total_fit[0], fit_model.fwhm_fit[0],
-                     cont_fit_poly(fit_model.line_wvl_fit[0]) + fit_model.int_cont_fit]), \
+                    fit_model.int_cont_fit, cont_fit_poly(fit_model.line_wvl_fit[0])]), \
             np.array([fit_model.line_wvl_err[0], fit_model.int_total_err[0], fit_model.fwhm_err[0],
-                    fit_model.int_cont_err])
+                    fit_model.int_cont_err, 0])
 
 
 green_path = "../../src/EclipseSpectra2017/MikesData_l1/Green/"
@@ -190,12 +165,13 @@ FeXIV_flatfields = [flatfield_1d_FeXIV_61st,flatfield_1d_FeXIV_62nd,flatfield_1d
 FeXIV_xslices = [slice(1010,1060),slice(680,730),slice(345,395)]
 for order,flatfield_1d,FeXIV_xslice in zip(FeXIV_order,FeXIV_flatfields,FeXIV_xslices):
     starttime_green_ext = datetime(2017,8,21,17,45,36)
-    green_fit_matrix_ext = np.full((4,350,188),np.nan,dtype=np.float64)
-    green_fit_matrix_ext_err = np.full((4,350,188),np.nan,dtype=np.float64)
+    green_fit_matrix_ext = np.full((5,350,188),np.nan,dtype=np.float64)
+    green_fit_matrix_ext_err = np.full((5,350,188),np.nan,dtype=np.float64)
     green_fit_filename_index = np.full(188,np.nan,dtype=np.int32)
     for ii, row_ in totality_green_df_ext.iterrows(): 
         date_obs = row_["date-obs"]
         exptime = np.float64(row_["exptime"])
+        readout_noise = np.float64(row_["ronoise"])
 
         time_difference = date_obs - starttime_green_ext
         startindex = int(time_difference.total_seconds()*2)
@@ -203,9 +179,10 @@ for order,flatfield_1d,FeXIV_xslice in zip(FeXIV_order,FeXIV_flatfields,FeXIV_xs
 
         green_frame_ = CCDData.read(os.path.join(green_path,row_["file"]),hdu=0,unit="adu")
         green_frame_wavelength_ = CCDData.read(os.path.join(green_path,row_["file"]),hdu=2,unit="adu").data
+        green_frame_noise_ = np.sqrt(green_frame_.data*exptime + readout_noise**2)/flatfield_1d[:,np.newaxis]/exptime
 
         FeXIV_fit_, FeXIV_fit_err_ = fit_spectra(green_frame_.data/flatfield_1d[:,np.newaxis]/exptime,
-        green_frame_wavelength_/order/10., FeXIV_xslice, slice(0,None), 
+        green_frame_noise_,green_frame_wavelength_/order/10., FeXIV_xslice, slice(0,None), 
                         slice(0,10),slice(40,50), nbin=None)
 
         green_fit_matrix_ext[:,:,startindex:endindex] = FeXIV_fit_[:,:,np.newaxis]
@@ -216,11 +193,12 @@ for order,flatfield_1d,FeXIV_xslice in zip(FeXIV_order,FeXIV_flatfields,FeXIV_xs
     green_fit_matrix_ext_err = np.flip(green_fit_matrix_ext_err,axis=(1,2))
     green_fit_filename_index = np.flip(green_fit_filename_index)
 
-    green_fit_matrix_bin_ext = np.full((4,70,188),np.nan,dtype=np.float64)
-    green_fit_matrix_bin_ext_err = np.full((4,70,188),np.nan,dtype=np.float64)
+    green_fit_matrix_bin_ext = np.full((5,70,188),np.nan,dtype=np.float64)
+    green_fit_matrix_bin_ext_err = np.full((5,70,188),np.nan,dtype=np.float64)
     for ii, row_ in totality_green_df_ext.iterrows(): 
         date_obs = row_["date-obs"]
         exptime = np.float64(row_["exptime"])
+        readout_noise = np.float64(row_["ronoise"])
 
         time_difference = date_obs - starttime_green_ext
         startindex = int(time_difference.total_seconds()*2)
@@ -228,9 +206,10 @@ for order,flatfield_1d,FeXIV_xslice in zip(FeXIV_order,FeXIV_flatfields,FeXIV_xs
 
         green_frame_ = CCDData.read(os.path.join(green_path,row_["file"]),hdu=0,unit="adu")
         green_frame_wavelength_ = CCDData.read(os.path.join(green_path,row_["file"]),hdu=2,unit="adu").data
+        green_frame_noise_ = np.sqrt(green_frame_.data*exptime + readout_noise**2)/flatfield_1d[:,np.newaxis]/exptime
 
         FeXIV_fit_, FeXIV_fit_err_  = fit_spectra(green_frame_.data/flatfield_1d[:,np.newaxis]/exptime,
-        green_frame_wavelength_/order/10., FeXIV_xslice, slice(0,None), 
+        green_frame_noise_,green_frame_wavelength_/order/10., FeXIV_xslice, slice(0,None), 
                         slice(0,10),slice(40,50), nbin=5, plot_fit=False)
 
         green_fit_matrix_bin_ext[:,:,startindex:endindex] = FeXIV_fit_[:,:,np.newaxis]
@@ -244,7 +223,7 @@ for order,flatfield_1d,FeXIV_xslice in zip(FeXIV_order,FeXIV_flatfields,FeXIV_xs
         df_green_fit_matrix_bin_ext = hf.create_dataset("green_fit_matrix_bin_ext",  data=green_fit_matrix_bin_ext)
         df_green_fit_matrix_bin_ext_err = hf.create_dataset("green_fit_matrix_bin_ext_err",  data=green_fit_matrix_bin_ext_err)
         df_green_fit_filename_index = hf.create_dataset("green_fit_filename_index",  data=green_fit_filename_index)
-        df_green_fit_matrix_ext.attrs["description"] = "wvl;int;fwhm;cont"
+        df_green_fit_matrix_ext.attrs["description"] = "wvl;int;fwhm;cont;cont_bg_poly"
 
 
 FeX_order = [51,52,53]
@@ -253,12 +232,13 @@ FeX_xslices = [slice(205,255),slice(602,652),slice(1025,1075)]
 
 for order,flatfield_1d,FeX_xslice in zip(FeX_order,FeX_flatfields,FeX_xslices):
     starttime_red_ext = datetime(2017,8,21,17,45,36)
-    red_fit_matrix_ext = np.full((4,350,176),np.nan,dtype=np.float64)
-    red_fit_matrix_ext_err = np.full((4,350,176),np.nan,dtype=np.float64)
+    red_fit_matrix_ext = np.full((5,350,176),np.nan,dtype=np.float64)
+    red_fit_matrix_ext_err = np.full((5,350,176),np.nan,dtype=np.float64)
     red_fit_filename_index = np.full(176,np.nan,dtype=np.int32)
     for ii, row_ in totality_red_df_ext.iterrows(): 
         date_obs = row_["date-obs"]
         exptime = np.float64(row_["exptime"])
+        readout_noise = np.float64(row_["ronoise"])
 
         time_difference = date_obs - starttime_red_ext
         startindex = int(time_difference.total_seconds()*2)
@@ -266,9 +246,10 @@ for order,flatfield_1d,FeX_xslice in zip(FeX_order,FeX_flatfields,FeX_xslices):
 
         red_frame_ = CCDData.read(os.path.join(red_path,row_["file"]),hdu=0,unit="adu")
         red_frame_wavelength_ = CCDData.read(os.path.join(red_path,row_["file"]),hdu=2,unit="adu").data
+        red_frame_noise_ = np.sqrt(red_frame_.data*exptime + readout_noise**2)/flatfield_1d[:,np.newaxis]/exptime
 
         FeX_fit_, FeX_fit_err_ = fit_spectra(red_frame_.data/flatfield_1d[:,np.newaxis]/exptime,
-        red_frame_wavelength_/order/10., FeX_xslice, slice(0,None), 
+        red_frame_noise_,red_frame_wavelength_/order/10., FeX_xslice, slice(0,None), 
                         slice(0,10),slice(40,50), nbin=None)
 
         red_fit_matrix_ext[:,:,startindex:endindex] = FeX_fit_[:,:,np.newaxis]
@@ -279,11 +260,12 @@ for order,flatfield_1d,FeX_xslice in zip(FeX_order,FeX_flatfields,FeX_xslices):
     red_fit_matrix_ext_err = np.flip(red_fit_matrix_ext_err,axis=(1,2))
     red_fit_filename_index = np.flip(red_fit_filename_index)
 
-    red_fit_matrix_bin_ext = np.full((4,70,176),np.nan,dtype=np.float64)
-    red_fit_matrix_bin_ext_err = np.full((4,70,176),np.nan,dtype=np.float64)
+    red_fit_matrix_bin_ext = np.full((5,70,176),np.nan,dtype=np.float64)
+    red_fit_matrix_bin_ext_err = np.full((5,70,176),np.nan,dtype=np.float64)
     for ii, row_ in totality_red_df_ext.iterrows(): 
         date_obs = row_["date-obs"]
         exptime = np.float64(row_["exptime"])
+        readout_noise = np.float64(row_["ronoise"])
 
         time_difference = date_obs - starttime_red_ext
         startindex = int(time_difference.total_seconds()*2)
@@ -291,9 +273,10 @@ for order,flatfield_1d,FeX_xslice in zip(FeX_order,FeX_flatfields,FeX_xslices):
 
         red_frame_ = CCDData.read(os.path.join(red_path,row_["file"]),hdu=0,unit="adu")
         red_frame_wavelength_ = CCDData.read(os.path.join(red_path,row_["file"]),hdu=2,unit="adu").data
+        red_frame_noise_ = np.sqrt(red_frame_.data*exptime + readout_noise**2)/flatfield_1d[:,np.newaxis]/exptime
 
         FeX_fit_, FeX_fit_err_ = fit_spectra(red_frame_.data/flatfield_1d[:,np.newaxis]/exptime,
-        red_frame_wavelength_/order/10., FeX_xslice, slice(0,None), 
+        red_frame_noise_,red_frame_wavelength_/order/10., FeX_xslice, slice(0,None), 
                         slice(0,10),slice(40,50), nbin=5, plot_fit=False)
 
         red_fit_matrix_bin_ext[:,:,startindex:endindex] = FeX_fit_[:,:,np.newaxis]
@@ -307,7 +290,7 @@ for order,flatfield_1d,FeX_xslice in zip(FeX_order,FeX_flatfields,FeX_xslices):
         df_red_fit_matrix_bin_ext = hf.create_dataset("red_fit_matrix_bin_ext",  data=red_fit_matrix_bin_ext)
         df_red_fit_matrix_bin_ext_err = hf.create_dataset("red_fit_matrix_bin_ext_err",  data=red_fit_matrix_bin_ext_err)
         df_red_fit_filename_index = hf.create_dataset("red_fit_filename_index",  data=red_fit_filename_index)
-        df_red_fit_matrix_ext.attrs["description"] = "wvl;int;fwhm;cont"
+        df_red_fit_matrix_ext.attrs["description"] = "wvl;int;fwhm;cont;cont_bg_poly"
 
 
 
