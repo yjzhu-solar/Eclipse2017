@@ -8,9 +8,12 @@ import h5py
 from astropy.nddata import CCDData
 import astropy.constants as const
 from astropy.wcs import FITSFixedWarning
+import astropy.units as u
+from astropy.nddata import StdDevUncertainty
 import warnings
 warnings.simplefilter("ignore", category=FITSFixedWarning)
-from PIL import Image
+from specutils import Spectrum1D
+from specutils.manipulation import SplineInterpolatedResampler
 from datetime import datetime, timedelta
 from ccdproc import ImageFileCollection
 import pandas as pd
@@ -51,13 +54,27 @@ def fit_spectra(image, err, wvl, orders, flatfields, wavelength_slices, intensit
                    (wavelength_slice_ , order_)in zip(wavelength_slices, orders)]
     
     for ii in range(3):
-        interp_func = interp1d(wvls_sliced[ii], images_sliced[ii],
-                               kind="cubic",axis=1,fill_value="extrapolate")
-        images_sliced_interp[ii,:,:] = interp_func(wvls_sliced[2])
+        wvl_grid = wvls_sliced[ii]*u.nm
+        wvl_grid_interp = wvls_sliced[2]*u.nm
+        for jj in range(images_sliced[ii].shape[0]):
+            interp_spline = SplineInterpolatedResampler()
+            spec_grid = images_sliced[ii][jj,:]*u.adu
+            spec_err = StdDevUncertainty(errs_sliced[ii][jj,:],unit=u.adu)
+            if (wvl_grid[1] - wvl_grid[0]) < 0:
+                input_spec = Spectrum1D(flux=np.flip(spec_grid),spectral_axis=np.flip(wvl_grid),uncertainty=np.flip(spec_err))
+            else:
+                input_spec = Spectrum1D(flux=spec_grid,spectral_axis=wvl_grid,uncertainty=spec_err)
+            interp_spec = interp_spline(input_spec,wvl_grid_interp)
+            images_sliced_interp[ii,jj,:] = interp_spec.flux.value
+            errs_sliced_interp[ii,jj,:] = interp_spec.uncertainty.array
 
-        interp_func_err = interp1d(wvls_sliced[ii], errs_sliced[ii],
-                               kind="linear",axis=1,fill_value="extrapolate")
-        errs_sliced_interp[ii,:,:] = interp_func_err(wvls_sliced[2])
+            # interp_func = interp1d(wvls_sliced[ii], images_sliced[ii],
+            #                     kind="cubic",axis=1,fill_value="extrapolate")
+            # images_sliced_interp[ii,:,:] = interp_func(wvls_sliced[2])
+
+            # # interp_func_err = interp1d(wvls_sliced[ii], errs_sliced[ii],
+            # #                     kind="linear",axis=1,fill_value="extrapolate")
+            # errs_sliced_interp[ii,:,:] = interp_func_err(wvls_sliced[2])
         
         
     image_combined = np.nanmean(images_sliced_interp/intensity_matrices[:,:,np.newaxis]*intensity_matrices[2,:,np.newaxis],axis=0)[:,5:-5]
