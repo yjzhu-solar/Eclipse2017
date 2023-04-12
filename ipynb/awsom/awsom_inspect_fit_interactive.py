@@ -18,6 +18,7 @@ from scipy.integrate import simps
 from scipy.signal import find_peaks
 rcParams['axes.linewidth'] = 1.5
 import cmcrameri.cm as cmcm
+import cmasher as cmr
 import h5py
 from astropy.visualization import ZScaleInterval, ImageNormalize, LogStretch, AsymmetricPercentileInterval,\
          ManualInterval, SqrtStretch
@@ -90,10 +91,10 @@ def show_fit(line_name, path, veff_min, veff_max, int_scale, int_min, int_max, s
 
     awsom_z_grid, awsom_y_grid, awsom_x_grid = np.meshgrid(awsom_z,awsom_y,awsom_x,indexing="ij")
     
-    fig, axes = plt.subplots(1,3,figsize=(11/200*len(awsom_y),4/250*len(awsom_z)),constrained_layout=True)
+    fig, axes = plt.subplots(1,3,figsize=(11/200*len(awsom_y),3.8/250*len(awsom_z)),constrained_layout=True)
     matrix_mask_TR = np.copy(fit_matrix)
     mask_transition_region_fit = np.where(np.sqrt(awsom_y_grid[:,:,150]**2 + awsom_z_grid[:,:,150]**2)[:,:,np.newaxis]* \
-                            np.ones_like(matrix_mask_TR) <= 1.05) 
+                            np.ones_like(matrix_mask_TR) <= 1.03) 
     matrix_mask_TR[mask_transition_region_fit] = np.nan
 
     if int_scale == "sqrt":
@@ -104,13 +105,17 @@ def show_fit(line_name, path, veff_min, veff_max, int_scale, int_min, int_max, s
     if (int_min is not None) and (int_max is not None):
         interval = ManualInterval(int_min,int_max)
     else:
-        interval=ZScaleInterval()
+        interval = None
     norm_matrix_int_mask_TR = ImageNormalize(matrix_mask_TR[:,:,1],interval=interval,stretch=strech)
 
+    if ion_name == "FeXIV":
+        int_cmap = cmr.jungle_r
+    else:
+        int_cmap = cmcm.lajolla
     
     title = r"{:} \textsc{{{:}}} {:} nm".format(ion_name[:2],ion_name[2:].lower(),wvl_name)
     im_int = axes[0].pcolormesh(awsom_y,awsom_z, matrix_mask_TR[:,:,1],norm=norm_matrix_int_mask_TR,
-    cmap=cmcm.lajolla, shading="auto",rasterized=True)
+    cmap=int_cmap, shading="auto",rasterized=True)
     axes[0].set_title(title + "\n" + \
                 r"$I_{\rm tot}\ \mathrm{[erg\,s^{-1}\,cm^{-2}\,sr^{-1}]}$",fontsize=14)
     plot_colorbar(im_int, axes[0],width="8%")
@@ -325,7 +330,7 @@ if __name__ == "__main__":
     if args.line is None:
         args.line = "FeXIV_530"
     if args.filepath is None:
-        args.filepath = "../../sav/AWSoM/syn_fit/box_run0019_run03_75/"
+        args.filepath = "../../sav/AWSoM/syn_fit/box_run0034_run01_75_5th/"
     if args.intscale is None:
         args.intscale = "sqrt"
 

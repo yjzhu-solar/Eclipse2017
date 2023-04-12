@@ -54,7 +54,7 @@ def calc_profile(emiss_table,dens,temp,height,height_grid,dens_grid,te_grid,tp_g
     emiss_func = interpolate.RegularGridInterpolator(points=(height,dens,temp),
                     values=emiss_table,
                     bounds_error=False,method=method)
-    emiss_box = emiss_func((height_grid[:,:,:], np.log10(dens_grid[:,:,:])/p_to_e, np.log10(te_grid[:,:,:])))* \
+    emiss_box = emiss_func((height_grid[:,:,:], np.log10(dens_grid[:,:,:]/p_to_e), np.log10(te_grid[:,:,:])))* \
         (dens_grid/p_to_e)*0.01*const.R_sun.cgs.value
 
     veff_grid = np.sqrt(2*k_b*tp_grid/ion_mass_amu/amu + vnt2_grid)
@@ -106,7 +106,8 @@ def fit_all_spec(syn_profiles, wvl_grid,line_number,line_wvl_init,int_max_init,f
 # awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0031_run01_75_5th/box_run0031_run01_75_5th.sav',verbose = False,python_dict=True)
 # awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0032_run01_75_5th/box_run0032_run01_75_5th.sav',verbose = False,python_dict=True)
 # awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0033_run01_75_5th/box_run0033_run01_75_5th.sav',verbose = False,python_dict=True)
-awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0034_run01_75_5th/box_run0034_run01_75_5th.sav',verbose = False,python_dict=True)
+# awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0034_run01_75_5th/box_run0034_run01_75_5th.sav',verbose = False,python_dict=True)
+awsom_data_set = scipy.io.readsav(r'../../sav/AWSoM/syn_fit/box_run0039_run01_75_5th_spm/box_run0039_run01_75_5th_spm.sav',verbose = False,python_dict=True)
 
 
 p_e_ratio = 0.83
@@ -201,7 +202,9 @@ FeXIII_10747_emiss_array_name = "fexiii_10747_emiss_array"
 # save_path = "../../sav/AWSoM/syn_fit/box_run0031_run01_75_5th/"
 # save_path = "../../sav/AWSoM/syn_fit/box_run0032_run01_75_5th/"
 # save_path = "../../sav/AWSoM/syn_fit/box_run0033_run01_75_5th/"
-save_path = "../../sav/AWSoM/syn_fit/box_run0034_run01_75_5th/"
+# save_path = "../../sav/AWSoM/syn_fit/box_run0034_run01_75_5th/"
+save_path = "../../sav/AWSoM/syn_fit/box_run0039_run01_75_5th_spm/"
+
 
 
 emiss_array_names = [FeXIV_emiss_array_name, FeX_emiss_array_name,

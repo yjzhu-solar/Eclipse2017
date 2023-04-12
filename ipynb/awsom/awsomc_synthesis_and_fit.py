@@ -54,7 +54,7 @@ def calc_profile(emiss_table,dens,temp,height,height_grid,dens_grid,iondens_grid
     emiss_func = interpolate.RegularGridInterpolator(points=(height,dens,temp),
                     values=emiss_table,
                     bounds_error=False,method=method)
-    emiss_box = emiss_func((height_grid[:,:,:], np.log10(dens_grid[:,:,:])/p_to_e, np.log10(te_grid[:,:,:])))* \
+    emiss_box = emiss_func((height_grid[:,:,:], np.log10(dens_grid[:,:,:]/p_to_e), np.log10(te_grid[:,:,:])))* \
        iondens_grid*0.01*const.R_sun.cgs.value
 
     veff_grid = np.sqrt(2*k_b*tp_grid/ion_mass_amu/amu + vnt2_grid)
