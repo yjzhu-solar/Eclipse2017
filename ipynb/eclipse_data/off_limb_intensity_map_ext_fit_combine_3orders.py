@@ -76,23 +76,30 @@ def fit_spectra(image, err, wvl, orders, flatfields, wavelength_slices, intensit
             # #                     kind="linear",axis=1,fill_value="extrapolate")
             # errs_sliced_interp[ii,:,:] = interp_func_err(wvls_sliced[2])
         
-        
-    image_combined = np.nanmean(images_sliced_interp/intensity_matrices[:,:,np.newaxis]*intensity_matrices[2,:,np.newaxis],axis=0)[:,5:-5]
-    err_f1 = intensity_matrices[2,:]/(3*intensity_matrices[0,:])
-    err_f2 = intensity_matrices[2,:]/(3*intensity_matrices[1,:])
-    err_f3 = 1./3
-    err_f4 = - images_sliced_interp[0,:,:]*intensity_matrices[2,:,np.newaxis]/(3*intensity_matrices[0,:,np.newaxis]**2)
-    err_f5 = - images_sliced_interp[1,:,:]*intensity_matrices[2,:,np.newaxis]/(3*intensity_matrices[1,:,np.newaxis]**2)
-    err_f6 = 1./3*(images_sliced_interp[0,:,:]/intensity_matrices[0,:,np.newaxis]+ \
-                    images_sliced_interp[1,:,:]/intensity_matrices[1,:,np.newaxis]) 
+    #now don't normalize the profiles before summation
+    # image_combined = np.nanmean(images_sliced_interp/intensity_matrices[:,:,np.newaxis]*intensity_matrices[2,:,np.newaxis],axis=0)[:,5:-5]
+    # err_f1 = intensity_matrices[2,:]/(3*intensity_matrices[0,:])
+    # err_f2 = intensity_matrices[2,:]/(3*intensity_matrices[1,:])
+    # err_f3 = 1./3
+    # err_f4 = - images_sliced_interp[0,:,:]*intensity_matrices[2,:,np.newaxis]/(3*intensity_matrices[0,:,np.newaxis]**2)
+    # err_f5 = - images_sliced_interp[1,:,:]*intensity_matrices[2,:,np.newaxis]/(3*intensity_matrices[1,:,np.newaxis]**2)
+    # err_f6 = 1./3*(images_sliced_interp[0,:,:]/intensity_matrices[0,:,np.newaxis]+ \
+    #                 images_sliced_interp[1,:,:]/intensity_matrices[1,:,np.newaxis]) 
     
-    err_combined = np.sqrt((err_f1[:,np.newaxis]*errs_sliced_interp[0,:,:])**2 + \
-                            (err_f2[:,np.newaxis]*errs_sliced_interp[1,:,:])**2 + \
-                            (err_f3*errs_sliced_interp[2,:,:])**2 + \
-                            (err_f4*intensity_err_matrices[0,:,np.newaxis])**2 + \
-                            (err_f5*intensity_err_matrices[1,:,np.newaxis])**2 + \
-                            (err_f6*intensity_err_matrices[2,:,np.newaxis])**2)
-    err_combined = err_combined[:,5:-5]
+    # err_combined = np.sqrt((err_f1[:,np.newaxis]*errs_sliced_interp[0,:,:])**2 + \
+    #                         (err_f2[:,np.newaxis]*errs_sliced_interp[1,:,:])**2 + \
+    #                         (err_f3*errs_sliced_interp[2,:,:])**2 + \
+    #                         (err_f4*intensity_err_matrices[0,:,np.newaxis])**2 + \
+    #                         (err_f5*intensity_err_matrices[1,:,np.newaxis])**2 + \
+    #                         (err_f6*intensity_err_matrices[2,:,np.newaxis])**2)
+    # err_combined = err_combined[:,5:-5]
+
+    image_combined = np.nansum(images_sliced_interp,axis=0)[:,5:-5]
+    err_combined = np.sqrt(errs_sliced_interp[0,:,:]**2 + \
+                           errs_sliced_interp[1,:,:]**2 + \
+                            errs_sliced_interp[2,:,:]**2)
+    err_combined = err_combined[:,5:-5]    
+
 
     fit_params = np.zeros((5,image_combined.shape[0]))
     fit_errs = np.zeros((5,image_combined.shape[0]))
