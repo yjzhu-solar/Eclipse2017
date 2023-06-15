@@ -207,10 +207,10 @@ class GetFitProfile:
 
 
         # fig, (ax1,ax2) = plt.subplots(2,1,figsize=(7,7),gridspec_kw={"height_ratios":[4,2]},constrained_layout=True)
-        fig = plt.figure(figsize=(14,4),constrained_layout=True)
+        fig = plt.figure(figsize=(14,6),constrained_layout=True)
         subfigs = fig.subfigures(1,2,width_ratios=[5,7])
         ax1 = subfigs[0].subplots()
-        ax2, ax3 = subfigs[1].subplots(2,1)
+        ax2, ax3, ax4 = subfigs[1].subplots(3,1)
 
         ax2_te = ax2.twinx()
         ax2_ne = ax2.twinx()
@@ -264,10 +264,16 @@ class GetFitProfile:
         ax3_vlos.set_ylabel(r"$v_{\rm LOS}\ \mathrm{[km\,s^{-1}]}$",fontsize=16)
         ax3_vlos.set_ylim(top=25)
 
+        ax4.plot(self.los_grid, self.emiss_box[y_select_pixel,x_select_pixel],color="#BDC0BA",zorder=0,alpha=0.8,
+                label=r"$\epsilon_{ij}\Delta s/4\pi$",lw=2)
+        ln_vth = ax3_veff.plot(self.los_grid, self.[y_select_pixel,x_select_pixel],color="#F596AA",zorder=0,alpha=0.8,
+                label=r"$v_{\rm eff}$",ls="-.",lw=2)        
+
         ax1.set_ylabel(r"$I_\lambda\ [\mathrm{erg\,s^{-1}\,cm^{-2}\,nm^{-1}\,sr^{-1}}]$",fontsize=16)
         ax1.set_xlabel(r"$\textrm{Wavelength}\ \lambda\ [\mathrm{nm}]$",fontsize=16)
         subfigs[1].supylabel(r"$\epsilon_{ij}\Delta s/4\pi$ " + r"$[\mathrm{erg\,s^{-1}\,cm^{-2}\,sr^{-1}}]$",fontsize=16)
-        ax3.set_xlabel(r"$s_{\rm LOS} [R_\odot]$",fontsize=16)
+
+        ax4.set_xlabel(r"$s_{\rm LOS} [R_\odot]$",fontsize=16)
 
         ax3_leg_list = [*ln_veff, *ln_vlos]
         ax3.legend(ax3_leg_list,[leg_.get_label() for leg_ in ax3_leg_list],
@@ -300,7 +306,7 @@ class GetFitProfile:
         color = 'black',fontsize = 16,linespacing=1.5,transform=ax1.transAxes)
 
         
-        for ax_ in (ax1, ax2, ax3):
+        for ax_ in (ax1, ax2, ax3,ax4):
             ax_.tick_params(labelsize=16,direction="in",top=True,which="both")
         ax1.tick_params(right=True)
         ax2.tick_params(labelbottom=False)
