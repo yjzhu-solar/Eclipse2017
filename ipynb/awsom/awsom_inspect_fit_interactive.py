@@ -266,8 +266,8 @@ class GetFitProfile:
 
         ax4.plot(self.los_grid, self.emiss_box[y_select_pixel,x_select_pixel],color="#BDC0BA",zorder=0,alpha=0.8,
                 label=r"$\epsilon_{ij}\Delta s/4\pi$",lw=2)
-        ln_vth = ax3_veff.plot(self.los_grid, self.[y_select_pixel,x_select_pixel],color="#F596AA",zorder=0,alpha=0.8,
-                label=r"$v_{\rm eff}$",ls="-.",lw=2)        
+        # ln_vth = ax3_veff.plot(self.los_grid, self.[y_select_pixel,x_select_pixel],color="#F596AA",zorder=0,alpha=0.8,
+                # label=r"$v_{\rm eff}$",ls="-.",lw=2)        
 
         ax1.set_ylabel(r"$I_\lambda\ [\mathrm{erg\,s^{-1}\,cm^{-2}\,nm^{-1}\,sr^{-1}}]$",fontsize=16)
         ax1.set_xlabel(r"$\textrm{Wavelength}\ \lambda\ [\mathrm{nm}]$",fontsize=16)
