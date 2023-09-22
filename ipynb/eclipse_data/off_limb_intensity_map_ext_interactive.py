@@ -44,9 +44,10 @@ def fit_and_plot(line,order):
     def func_img_yarcsec_to_ypixel(x):
         return x*img_pixel_to_arcsec + img_center[1]
 
-    def plot_colorbar(im, ax, width="3%", height="100%",loc="lower left",fontsize=14):
+    def plot_colorbar(im, ax, width="3%", height="100%",loc="lower left",fontsize=14,
+                    bbox_to_anchor=(1.02, 0., 1, 1)):
         clb_ax = inset_axes(ax,width=width,height=height,loc=loc,
-                    bbox_to_anchor=(1.02, 0., 0.5, 1),
+                    bbox_to_anchor=bbox_to_anchor,
                     bbox_transform=ax.transAxes,
                     borderpad=0)
         clb = plt.colorbar(im,pad = 0.05,orientation='vertical',ax=ax,cax=clb_ax)
@@ -63,6 +64,12 @@ def fit_and_plot(line,order):
     def create_limb_circle(rsun):
         return patches.Circle((0,0),rsun,linewidth=2,edgecolor="grey",
                                 facecolor="none",alpha=0.6,ls="--")
+    
+    def veff2teff(veff):
+        return 55.85*const.u.cgs.value*(veff*1e5)**2/2/const.k_B.cgs.value/1e6
+
+    def teff2veff(teff):
+        return np.sqrt(2*const.k_B.cgs.value*teff*1e6/(55.85*const.u.cgs.value))/1e5
 
     with h5py.File("../../sav/Eclipse/LimbTrack/sun_pos_linear_fit.h5", 'r') as hf:
         sun_x_fitparam = hf['sun_x_fitparam'][:]
@@ -192,6 +199,8 @@ def fit_and_plot(line,order):
         pixel_size_green = np.abs(np.mean(np.diff((green_frame_wavelength/order/10.)[FeXIV_xslice])))
         inst_width_pix_green = 1.86
         inst_width_nm_green = pixel_size_green*inst_width_pix_green
+        inst_width_pix_err_green = 0.4
+        inst_width_nm_err_green = pixel_size_green*inst_width_pix_err_green
 
         img_xpixel_array = np.arange(FeXIV_line_cont_image_rot_scipy.shape[1])
         img_ypixel_array = np.arange(FeXIV_line_cont_image_rot_scipy.shape[0])
@@ -199,45 +208,114 @@ def fit_and_plot(line,order):
         img_xarcsec_array = func_img_xpixel_to_xarcsec(img_xpixel_array)
         img_yarcsec_array = func_img_ypixel_to_yarcsec(img_ypixel_array)
 
-
-
-        colorbar_width = "14%"
-
         slit_xshift_green = sun_x_fitpoly(62) - slit_pos
         slit_center_x_green =  - slit_xshift_green/pixel_ratio_to_arcsec*np.cos(np.deg2rad(np.abs(rotate_angle_context)))
         slit_center_y_green =  slit_xshift_green/pixel_ratio_to_arcsec*np.sin(np.deg2rad(np.abs(rotate_angle_context)))
 
-        fig, ((ax1,ax2,ax3),(ax4,ax5,ax6)) = plt.subplots(2,3,figsize=(11.2,7.6),constrained_layout=True,
-                        gridspec_kw={'wspace':0.0})
+        mask_bad_fit_matrix_ext = np.where(np.any(np.abs(green_fit_matrix_ext_err/green_fit_matrix_ext)[:3,:,:] > 0.5,axis=0) | \
+                np.any(np.isnan(green_fit_matrix_ext_err),axis=0))
+        
+        mask_bad_fit_matrix_bin_ext = np.where(np.any(np.abs(green_fit_matrix_bin_ext_err/green_fit_matrix_bin_ext)[:3,:,:] > 0.2,axis=0) | \
+                        np.any(np.isnan(green_fit_matrix_bin_ext_err),axis=0))
+
+        # kernel = Gaussian2DKernel(x_stddev=1,y_stddev=2)
+        # kernel_bin = Gaussian2DKernel(x_stddev=1,y_stddev=0.2)
+
+        green_where_disk_ext = np.where((x_2d_grid_green_arcsec_rot_ext + slit_center_x_green)**2 + \
+                                            (y_2d_grid_green_arcsec_rot_ext + slit_center_y_green)**2 < 970**2)
+
+        green_line_int_masked = np.copy(green_fit_matrix_ext[1,:,:])
+        # green_line_int_masked[mask_bad_fit_matrix_ext] = np.nan
+        # green_line_int_masked = interpolate_replace_nans(green_line_int_masked,kernel)
+        green_line_int_masked[green_where_disk_ext] = np.nan
+
+        green_line_int_masked_err = np.copy(green_fit_matrix_ext_err[1,:,:])
+        green_line_int_masked_err[green_where_disk_ext] = np.nan
+
+        green_cont_masked = np.copy(green_fit_matrix_ext[3,:,:]+green_fit_matrix_ext[4,:,:])
+        # green_cont_masked[mask_bad_fit_matrix_ext] = np.nan
+        # green_cont_masked = interpolate_replace_nans(green_cont_masked, kernel)
+        green_cont_masked[green_where_disk_ext] = np.nan
+
+        green_line_cont_ratio_masked = green_fit_matrix_ext[1,:,:]/(green_fit_matrix_ext[3,:,:]+green_fit_matrix_ext[4,:,:])
+        # green_line_cont_ratio_masked[mask_bad_fit_matrix_ext] = np.nan
+        # green_line_cont_ratio_masked = interpolate_replace_nans(green_line_cont_ratio_masked,kernel)
+        green_line_cont_ratio_masked[green_where_disk_ext] = np.nan
+
+        green_where_disk_bin_ext = np.where((x_2d_grid_green_arcsec_bin_rot_ext + slit_center_x_green)**2 + \
+                                            (y_2d_grid_green_arcsec_bin_rot_ext + slit_center_y_green)**2 < 940**2)
+
+        green_vlos_masked = -(np.copy(green_fit_matrix_bin_ext[0,:,:]) - 530.29)/530.29*const.c.cgs.value*1e-5
+        green_vlos_masked[np.where(green_fit_matrix_bin_ext[1,:,:] < 15)] = np.nan
+        green_vlos_masked[mask_bad_fit_matrix_bin_ext] = np.nan
+        green_vlos_masked[green_where_disk_bin_ext] = np.nan
+        green_vlos_masked = green_vlos_masked - np.nanmedian(green_vlos_masked)
+        # green_vlos_masked = interpolate_replace_nans(green_vlos_masked,kernel_bin)
+        green_vlos_masked[green_where_disk_bin_ext] = np.nan
+
+        green_vlos_masked_err = green_fit_matrix_bin_ext_err[0,:,:]/530.29*const.c.cgs.value*1e-5
+        green_vlos_masked_err[np.where(green_fit_matrix_bin_ext[1,:,:] < 15)] = np.nan
+        green_vlos_masked_err[green_where_disk_bin_ext] = np.nan
+
+        green_fwhm_masked = np.copy(green_fit_matrix_bin_ext[2,:,:])
+        green_fwhm_masked[np.where(green_fit_matrix_bin_ext[1,:,:] < 15)] = np.nan
+        green_fwhm_masked[mask_bad_fit_matrix_bin_ext] = np.nan
+        # green_fwhm_masked_err[green_where_disk_bin_ext] = np.nan        
+        green_veff_masked = np.sqrt(green_fwhm_masked**2 - inst_width_nm_green**2)/530.29*const.c.cgs.value*1e-5/np.sqrt(4*np.log(2))
+        # green_veff_masked = interpolate_replace_nans(green_veff_masked,kernel_bin)
+        green_veff_masked[green_where_disk_bin_ext] = np.nan
+
+        green_fwhm_masked_err = np.copy(green_fit_matrix_bin_ext_err[2,:,:])
+        green_fwhm_masked_err[np.where(green_fit_matrix_bin_ext[1,:,:] < 15)] = np.nan
+        green_fwhm_masked_err[green_where_disk_bin_ext] = np.nan     
+        green_veff_masked_err = np.sqrt(green_fwhm_masked**2/(green_fwhm_masked**2 - inst_width_nm_green**2)* \
+            green_fwhm_masked_err**2 + inst_width_nm_green**2/(green_fwhm_masked**2 - inst_width_nm_green**2)* \
+            inst_width_nm_err_green**2)/530.29*const.c.cgs.value*1e-5/np.sqrt(4*np.log(2))
+
+
+        colorbar_width = "10%"
+
+        fig, ((ax1,ax2,ax3),(ax4,ax5,ax6)) = plt.subplots(2,3,figsize=(11.5,7.6),constrained_layout=True)
+        fig.get_layout_engine().set(rect=(0.02,0.02,0.87,0.95))
+
         im1 = ax1.pcolormesh(img_xarcsec_array,img_yarcsec_array,FeXIV_line_cont_image_rot_scipy,vmin=0.2,vmax=1.2,
                             cmap=cmr.jungle_r,shading="auto",rasterized=True)
 
         plot_colorbar(im1, ax1,width=colorbar_width)
 
-        for ax_ in (ax2,ax3,ax4,ax5,ax6):
-            ax_.pcolormesh(img_xarcsec_array,img_yarcsec_array,FeXIV_line_cont_image_rot_scipy,vmin=0.2,vmax=1.2,
-                            cmap=cmr.jungle_r,shading="auto",rasterized=True,alpha=0.5)
+        # for ax_ in (ax2,ax3,ax4,ax5,ax6):
+        #     ax_.pcolormesh(img_xarcsec_array,img_yarcsec_array,FeXIV_line_cont_image_rot_scipy,vmin=0.2,vmax=1.2,
+        #                     cmap=cmr.jungle_r,shading="auto",rasterized=True,alpha=0.5)
 
-        green_where_disk_ext = np.where((x_2d_grid_green_arcsec_rot_ext + slit_center_x_green)**2 + \
-                                                (y_2d_grid_green_arcsec_rot_ext + slit_center_y_green)**2 < 940**2)
+        # green_where_disk_ext = np.where((x_2d_grid_green_arcsec_rot_ext + slit_center_x_green)**2 + \
+        #                                         (y_2d_grid_green_arcsec_rot_ext + slit_center_y_green)**2 < 940**2)
 
-        green_line_int_masked = np.copy(green_fit_matrix_ext[1,:,:])
-        green_line_int_masked[green_where_disk_ext] = np.nan
+        # green_line_int_masked = np.copy(green_fit_matrix_ext[1,:,:])
+        # green_line_int_masked[green_where_disk_ext] = np.nan
+
         norm_green_line_int = ImageNormalize(green_line_int_masked,interval=ManualInterval(0,850),
                                                 stretch=SqrtStretch())
 
         im2 = ax2.pcolormesh(x_2d_grid_green_arcsec_rot_ext + slit_center_x_green,
                         y_2d_grid_green_arcsec_rot_ext + slit_center_y_green,
-                        green_line_int_masked,cmap=cmcm.lajolla,rasterized=True,norm=norm_green_line_int)
+                        green_line_int_masked,cmap=cmr.jungle_r,rasterized=True,norm=norm_green_line_int)
 
 
         plot_colorbar(im2, ax2,width=colorbar_width)
 
-        green_cont_masked = np.copy(green_fit_matrix_ext[3,:,:])
-        green_cont_masked[green_where_disk_ext] = np.nan
+        # green_cont_masked = np.copy(green_fit_matrix_ext[3,:,:]+green_fit_matrix_ext[4,:,:])
+        # # green_cont_masked[mask_bad_fit_matrix_ext] = np.nan
+        # # green_cont_masked = interpolate_replace_nans(green_cont_masked, kernel)
+        # green_cont_masked[green_where_disk_ext] = np.nan
+
+        # green_line_cont_ratio_masked = green_fit_matrix_ext[1,:,:]/(green_fit_matrix_ext[3,:,:]+green_fit_matrix_ext[4,:,:])
+        # # green_line_cont_ratio_masked[mask_bad_fit_matrix_ext] = np.nan
+        # # green_line_cont_ratio_masked = interpolate_replace_nans(green_line_cont_ratio_masked,kernel)
+        # green_line_cont_ratio_masked[green_where_disk_ext] = np.nan
+        
         im3 = ax3.pcolormesh(x_2d_grid_green_arcsec_rot_ext + slit_center_x_green,
                         y_2d_grid_green_arcsec_rot_ext + slit_center_y_green,
-                        green_cont_masked,cmap=cmcm.lajolla,rasterized=True,vmin=1000,vmax=10000)
+                        green_cont_masked,cmap=cmr.jungle_r,rasterized=True,vmin=1000,vmax=10000)
 
         im3_clb, im3_clbax = plot_colorbar(im3, ax3,width=colorbar_width)
         im3_clbax.ticklabel_format(axis="y", style="sci", scilimits=(0,0))
@@ -245,45 +323,63 @@ def fit_and_plot(line,order):
         im3_clbax.yaxis.get_offset_text().set(va="bottom",ha="left")
         im3_clbax.yaxis.get_offset_text().set_position((1,1.1))
 
-        green_line_cont_ratio_masked = green_fit_matrix_ext[1,:,:]/green_fit_matrix_ext[3,:,:]
-        green_line_cont_ratio_masked[green_where_disk_ext] = np.nan
+        # green_line_cont_ratio_masked = green_fit_matrix_ext[1,:,:]/green_fit_matrix_ext[3,:,:]
+        # green_line_cont_ratio_masked[green_where_disk_ext] = np.nan
+
         im4 = ax4.pcolormesh(x_2d_grid_green_arcsec_rot_ext + slit_center_x_green,
                         y_2d_grid_green_arcsec_rot_ext + slit_center_y_green,
-                        green_line_cont_ratio_masked,cmap=cmcm.lajolla,rasterized=True,vmin=0,vmax=0.2)
+                        green_line_cont_ratio_masked,cmap=cmr.jungle_r,rasterized=True,vmin=0,vmax=0.2)
 
         plot_colorbar(im4, ax4,width=colorbar_width)
 
-        green_where_disk_bin_ext = np.where((x_2d_grid_green_arcsec_bin_rot_ext + slit_center_x_green)**2 + \
-                                                (y_2d_grid_green_arcsec_bin_rot_ext + slit_center_y_green)**2 < 940**2)
+        # green_where_disk_bin_ext = np.where((x_2d_grid_green_arcsec_bin_rot_ext + slit_center_x_green)**2 + \
+        #                                         (y_2d_grid_green_arcsec_bin_rot_ext + slit_center_y_green)**2 < 940**2)
 
-        green_vlos_masked = -(np.copy(green_fit_matrix_bin_ext[0,:,:]) - 530.29)/530.29*const.c.cgs.value*1e-5
-        green_vlos_masked[np.where(green_fit_matrix_bin_ext[1,:,:] < 15)] = np.nan
-        green_vlos_masked[green_where_disk_bin_ext] = np.nan
-        green_vlos_masked = green_vlos_masked - np.nanmedian(green_vlos_masked)
-        green_vlos_masked_err = green_fit_matrix_bin_ext_err[0,:,:]/530.29*const.c.cgs.value*1e-5
-        green_vlos_masked_err[np.where(green_fit_matrix_bin_ext[1,:,:] < 15)] = np.nan
-        green_vlos_masked_err[green_where_disk_bin_ext] = np.nan
+        # green_vlos_masked = -(np.copy(green_fit_matrix_bin_ext[0,:,:]) - 530.29)/530.29*const.c.cgs.value*1e-5
+        # green_vlos_masked[np.where(green_fit_matrix_bin_ext[1,:,:] < 15)] = np.nan
+        # green_vlos_masked[green_where_disk_bin_ext] = np.nan
+        # green_vlos_masked = green_vlos_masked - np.nanmedian(green_vlos_masked)
+        # green_vlos_masked_err = green_fit_matrix_bin_ext_err[0,:,:]/530.29*const.c.cgs.value*1e-5
+        # green_vlos_masked_err[np.where(green_fit_matrix_bin_ext[1,:,:] < 15)] = np.nan
+        # green_vlos_masked_err[green_where_disk_bin_ext] = np.nan
+
         im5 = ax5.pcolormesh(x_2d_grid_green_arcsec_bin_rot_ext + slit_center_x_green,
                         y_2d_grid_green_arcsec_bin_rot_ext + slit_center_y_green,
                         green_vlos_masked,cmap=cmcm.vik_r,rasterized=True,vmin=-10,vmax=10)
 
         plot_colorbar(im5, ax5,width=colorbar_width)
 
-        fwhm_masked = np.copy(green_fit_matrix_bin_ext[2,:,:])
-        fwhm_masked[np.where(green_fit_matrix_bin_ext[1,:,:] < 15)] = np.nan
-        fwhm_masked[green_where_disk_bin_ext] = np.nan
-        fwhm_masked_err = np.copy(green_fit_matrix_bin_ext_err[2,:,:])
-        fwhm_masked_err[np.where(green_fit_matrix_bin_ext[1,:,:] < 15)] = np.nan
-        fwhm_masked_err[green_where_disk_bin_ext] = np.nan        
-        veff_masked = np.sqrt(fwhm_masked**2 - inst_width_nm_green**2)/530.29*const.c.cgs.value*1e-5/np.sqrt(4*np.log(2))
-        veff_masked_err = fwhm_masked/np.sqrt(fwhm_masked**2 - inst_width_nm_green**2)* \
-            fwhm_masked_err/530.29*const.c.cgs.value*1e-5/np.sqrt(4*np.log(2))
-        im6 = ax6.pcolormesh(x_2d_grid_green_arcsec_bin_rot_ext + slit_center_x_green,
-                        y_2d_grid_green_arcsec_bin_rot_ext + slit_center_y_green,veff_masked,
-                        cmap=cmcm.batlowK,rasterized=True,vmin=0.07/530.29*const.c.cgs.value*1e-5/np.sqrt(4*np.log(2)),
-                        vmax=0.11/530.29*const.c.cgs.value*1e-5/np.sqrt(4*np.log(2)))
+        # fwhm_masked = np.copy(green_fit_matrix_bin_ext[2,:,:])
+        # fwhm_masked[np.where(green_fit_matrix_bin_ext[1,:,:] < 15)] = np.nan
+        # fwhm_masked[green_where_disk_bin_ext] = np.nan
+        # fwhm_masked_err = np.copy(green_fit_matrix_bin_ext_err[2,:,:])
+        # fwhm_masked_err[np.where(green_fit_matrix_bin_ext[1,:,:] < 15)] = np.nan
+        # fwhm_masked_err[green_where_disk_bin_ext] = np.nan        
+        # veff_masked = np.sqrt(fwhm_masked**2 - inst_width_nm_green**2)/530.29*const.c.cgs.value*1e-5/np.sqrt(4*np.log(2))
+        # veff_masked_err = fwhm_masked/np.sqrt(fwhm_masked**2 - inst_width_nm_green**2)* \
+        #     fwhm_masked_err/530.29*const.c.cgs.value*1e-5/np.sqrt(4*np.log(2))
 
-        plot_colorbar(im6, ax6,width=colorbar_width)
+        # im6 = ax6.pcolormesh(x_2d_grid_green_arcsec_bin_rot_ext + slit_center_x_green,
+        #                 y_2d_grid_green_arcsec_bin_rot_ext + slit_center_y_green,veff_masked,
+        #                 cmap=cmcm.batlowK,rasterized=True,vmin=0.07/530.29*const.c.cgs.value*1e-5/np.sqrt(4*np.log(2)),
+        #                 vmax=0.11/530.29*const.c.cgs.value*1e-5/np.sqrt(4*np.log(2)))
+
+        # plot_colorbar(im6, ax6,width=colorbar_width)
+
+        im6 = ax6.pcolormesh(x_2d_grid_green_arcsec_bin_rot_ext + slit_center_x_green,
+                        y_2d_grid_green_arcsec_bin_rot_ext + slit_center_y_green,
+                        green_veff_masked,cmap=cmcm.batlowK,rasterized=True,
+                        vmin=0.07/530.29*const.c.cgs.value*1e-5/np.sqrt(4*np.log(2))
+                        ,vmax=0.12/530.29*const.c.cgs.value*1e-5/np.sqrt(4*np.log(2)))
+
+
+        clb6, clb_ax6 = plot_colorbar(im6, ax6,width=colorbar_width,bbox_to_anchor=(1.3, 0., 1, 1),fontsize=16)
+        clb_ax6.yaxis.set_ticks_position("left")
+        clb_ax6.set_ylabel(r"$\boldsymbol{v_{\rm eff}\ [\mathrm{km\,s^{-1}}]}$",fontsize=16)
+        clb_ax6.yaxis.set_label_position("left")
+        clb_ax6_teff = clb_ax6.secondary_yaxis("right",functions=(veff2teff, teff2veff))
+        clb_ax6_teff.tick_params(labelsize=16)
+        clb_ax6_teff.set_ylabel(r"$\boldsymbol{T_{\rm eff}\ [\mathrm{MK}]}$",fontsize=16)
 
         ax1.set_ylabel("Solar-Y [arcsec]",fontsize=14)
         ax4.set_xlabel("Solar-X [arcsec]",fontsize=14)
@@ -325,7 +421,7 @@ def fit_and_plot(line,order):
                         green_fit_filename_index, green_path,
                         totality_green_df_ext,FeXIV_xslice,flatfield_1d,order, green_fit_matrix_ext,
                         green_fit_matrix_ext_err, green_fit_matrix_bin_ext, green_fit_matrix_bin_ext_err,
-                        green_vlos_masked, green_vlos_masked_err, veff_masked, veff_masked_err)
+                        green_vlos_masked, green_vlos_masked_err, green_veff_masked, green_veff_masked_err)
         
         plt.show()
 
@@ -480,8 +576,19 @@ def fit_and_plot(line,order):
 
         plot_colorbar(im2, ax2,width=colorbar_width)
 
-        red_cont_masked = np.copy(red_fit_matrix_ext[3,:,:])
+        # red_cont_masked = np.copy(red_fit_matrix_ext[3,:,:])
+        # red_cont_masked[red_where_disk_ext] = np.nan
+        red_cont_masked = np.copy(red_fit_matrix_ext[3,:,:]+red_fit_matrix_ext[4,:,:])
+        # red_cont_masked[red_mask_bad_fit_matrix_ext] = np.nan
+        # red_cont_masked = interpolate_replace_nans(red_cont_masked, kernel)
         red_cont_masked[red_where_disk_ext] = np.nan
+
+        # red_line_cont_ratio_masked = red_fit_matrix_ext[1,:,:]/red_fit_matrix_ext[3,:,:]
+        # red_line_cont_ratio_masked[red_mask_bad_fit_matrix_ext] = np.nan
+        # red_line_cont_ratio_masked = interpolate_replace_nans(red_line_cont_ratio_masked,kernel)
+        # red_line_cont_ratio_masked[red_where_disk_ext] = np.nan
+        red_line_cont_ratio_masked = red_line_int_masked/red_cont_masked
+
         im3 = ax3.pcolormesh(x_2d_grid_red_arcsec_rot_ext + slit_center_x_red,
                         y_2d_grid_red_arcsec_rot_ext + slit_center_y_red,
                         red_cont_masked,cmap=cmcm.lajolla,rasterized=True,vmin=1000,vmax=10000)
@@ -492,8 +599,9 @@ def fit_and_plot(line,order):
         im3_clbax.yaxis.get_offset_text().set(va="bottom",ha="left")
         im3_clbax.yaxis.get_offset_text().set_position((0,1.01))
 
-        red_line_cont_ratio_masked = red_fit_matrix_ext[1,:,:]/red_fit_matrix_ext[3,:,:]
-        red_line_cont_ratio_masked[red_where_disk_ext] = np.nan
+        # red_line_cont_ratio_masked = red_fit_matrix_ext[1,:,:]/red_fit_matrix_ext[3,:,:]
+        # red_line_cont_ratio_masked[red_where_disk_ext] = np.nan
+
         im4 = ax4.pcolormesh(x_2d_grid_red_arcsec_rot_ext + slit_center_x_red,
                         y_2d_grid_red_arcsec_rot_ext + slit_center_y_red,
                         red_line_cont_ratio_masked,cmap=cmcm.bamako_r,rasterized=True,vmin=0,vmax=0.1)
@@ -647,10 +755,10 @@ class GetFitProfile:
 
             profile_res = profile_to_fit - cont_fit_poly(frame_wavelength_sliced)
             profile_fit = gaussian(frame_wavelength_sliced,*self.fit_matrix[:3,y_select_pixel,x_select_pixel]) + \
-                self.fit_matrix[3,y_select_pixel,x_select_pixel] - np.mean(cont_fit_poly(frame_wavelength_sliced))
+                self.fit_matrix[3,y_select_pixel,x_select_pixel]#+self.fit_matrix[4,y_select_pixel,x_select_pixel] - np.mean(cont_fit_poly(frame_wavelength_sliced))
             wvl_to_plot = np.linspace(frame_wavelength_sliced[0],frame_wavelength_sliced[-1],301)
             profile_fit_to_plot = gaussian(wvl_to_plot,*self.fit_matrix[:3,y_select_pixel,x_select_pixel]) + \
-                self.fit_matrix[3,y_select_pixel,x_select_pixel] - np.mean(cont_fit_poly(frame_wavelength_sliced))
+                self.fit_matrix[3,y_select_pixel,x_select_pixel]#+self.fit_matrix[4,y_select_pixel,x_select_pixel] - np.mean(cont_fit_poly(frame_wavelength_sliced))
             fit_res = profile_res - profile_fit
 
             plot_xlim = self.fit_matrix[0,y_select_pixel,x_select_pixel] + \
@@ -684,11 +792,11 @@ class GetFitProfile:
 
             profile_res = profile_to_fit - cont_fit_poly(frame_wavelength_sliced)
             profile_fit = gaussian(frame_wavelength_sliced,*self.fit_bin_matrix[:3,y_select_pixel,x_select_pixel]) + \
-                self.fit_bin_matrix[3,y_select_pixel,x_select_pixel] - np.mean(cont_fit_poly(frame_wavelength_sliced))
+                self.fit_bin_matrix[3,y_select_pixel,x_select_pixel]# - np.mean(cont_fit_poly(frame_wavelength_sliced))
 
             wvl_to_plot = np.linspace(frame_wavelength_sliced[0],frame_wavelength_sliced[-1],301)
             profile_fit_to_plot = gaussian(wvl_to_plot,*self.fit_bin_matrix[:3,y_select_pixel,x_select_pixel]) + \
-                self.fit_bin_matrix[3,y_select_pixel,x_select_pixel] - np.mean(cont_fit_poly(frame_wavelength_sliced))
+                self.fit_bin_matrix[3,y_select_pixel,x_select_pixel]# - np.mean(cont_fit_poly(frame_wavelength_sliced))
             fit_res = profile_res - profile_fit
 
             plot_xlim = self.fit_bin_matrix[0,y_select_pixel,x_select_pixel] + \
