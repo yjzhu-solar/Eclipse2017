@@ -40,6 +40,8 @@ Links to the Jupyter notebooks for each Figure (Recommend to open these notebook
 
 [Figure 18](https://yjzhu-solar.github.io/Eclipse2017/ipynb_html/pointing_coalignment.html): Pointing of 3PAMIS during the totality. 
 
+[Figure 19](https://yjzhu-solar.github.io/Eclipse2017/ipynb_html/off_limb_intensity_map_ext_view_combine_3orders.html): Comparison of Fe XIV profiles in different orders observed by 3PAMIS. 
+
 
 
 
